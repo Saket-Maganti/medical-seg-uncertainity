@@ -15,7 +15,9 @@ wandb/
 .claude/
 
 # Local datasets and checkpoints
-data/
+data/*
+!data/
+!data/*.py
 datasets/
 checkpoints/
 *.pt
