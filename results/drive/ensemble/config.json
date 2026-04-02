@@ -1,0 +1,10 @@
+{
+  "data_dir": "data/DRIVE",
+  "checkpoint_dir": "checkpoints",
+  "output_dir": "results/drive/ensemble",
+  "encoder": "resnet50",
+  "dropout_p": 0.3,
+  "img_size": 512,
+  "batch_size": 1,
+  "mc_samples": 10
+}

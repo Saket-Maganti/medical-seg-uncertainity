@@ -1,0 +1,4 @@
+method,avg_runtime_s_per_image
+deterministic_fullft,0.0757136812502722
+ensemble,2.0612304958005554
+mc_dropout_fullft,1.362078420949547

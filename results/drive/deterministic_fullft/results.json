@@ -1,0 +1,18 @@
+{
+  "dice": 0.7356840372085571,
+  "auc": 0.9439900363007501,
+  "iou": 0.5821589231491089,
+  "ece": 0.24545956404105396,
+  "sensitivity": 0.7969776034355164,
+  "specificity": 0.9469942718744278,
+  "unc_auroc": 0.5,
+  "global_ece": 0.24545935051507356,
+  "threshold": 0.7,
+  "uncertainty_mean": 0.0,
+  "uncertainty_std": 0.0,
+  "uncertainty_p95": 0.0,
+  "uncertainty_max": 0.0,
+  "global_unc_auroc": 0.5,
+  "avg_runtime_s_per_image": 0.0757136812502722,
+  "method": "deterministic"
+}

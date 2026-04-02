@@ -1,0 +1,5 @@
+inherits: base.yaml
+run_name: unet_deterministic
+dropout_p: 0.0
+deterministic: true
+output_dir: results/drive/deterministic

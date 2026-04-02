@@ -1,0 +1,10 @@
+{
+  "data_dir": "data/DRIVE",
+  "checkpoint_dir": "checkpoints/ablation_ens5",
+  "output_dir": "results/ablations/ensemble_size/ens_5",
+  "encoder": "resnet50",
+  "dropout_p": 0.3,
+  "img_size": 512,
+  "batch_size": 1,
+  "mc_samples": 10
+}

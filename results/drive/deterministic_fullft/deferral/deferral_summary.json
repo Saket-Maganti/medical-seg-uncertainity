@@ -1,0 +1,87 @@
+{
+  "n_pixels": 3605760,
+  "optimal": {
+    "max_f1": {
+      "threshold": 0.0,
+      "coverage": 1.0,
+      "precision": 1.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "dice_accepted": 0.6791446208953857,
+      "n_deferred": 0,
+      "pct_deferred": 0.0
+    },
+    "precision_at_80recall": {
+      "threshold": 0.0,
+      "coverage": 1.0,
+      "precision": 1.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "dice_accepted": 0.6791446208953857,
+      "n_deferred": 0,
+      "pct_deferred": 0.0
+    },
+    "max_coverage_at_dice_82": {
+      "threshold": 0.0,
+      "coverage": 1.0,
+      "precision": 1.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "dice_accepted": 0.6791446208953857,
+      "n_deferred": 0,
+      "pct_deferred": 0.0
+    },
+    "high_precision": {
+      "threshold": 0.0,
+      "coverage": 1.0,
+      "precision": 1.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "dice_accepted": 0.6791446208953857,
+      "n_deferred": 0,
+      "pct_deferred": 0.0
+    },
+    "high_recall": {
+      "threshold": 0.0,
+      "coverage": 1.0,
+      "precision": 1.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "dice_accepted": 0.6791446208953857,
+      "n_deferred": 0,
+      "pct_deferred": 0.0
+    }
+  },
+  "operating_points": {
+    "balanced_f1": {
+      "threshold": 0.0,
+      "coverage": 1.0,
+      "precision": 1.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "dice_accepted": 0.6791446208953857,
+      "n_deferred": 0,
+      "pct_deferred": 0.0
+    },
+    "high_precision": {
+      "threshold": 0.0,
+      "coverage": 1.0,
+      "precision": 1.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "dice_accepted": 0.6791446208953857,
+      "n_deferred": 0,
+      "pct_deferred": 0.0
+    },
+    "high_recall": {
+      "threshold": 0.0,
+      "coverage": 1.0,
+      "precision": 1.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "dice_accepted": 0.6791446208953857,
+      "n_deferred": 0,
+      "pct_deferred": 0.0
+    }
+  }
+}

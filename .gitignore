@@ -1,0 +1,38 @@
+.DS_Store
+
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+venv/
+.venv/
+env/
+
+# Experiment tracking and local tooling
+wandb/
+.claude/
+
+# Local datasets and checkpoints
+data/
+datasets/
+checkpoints/
+*.pt
+*.pth
+
+# Large generated experiment artifacts
+results/**/artifacts/
+results/**/fullft_train/
+results/**/patch_train/
+results/**/*.npy
+results/**/*.pth
+
+# Paper assets are intentionally excluded for now
+paper/
+paper/figures/
+paper/README_PAPER.md
+paper/main_preprint.tex
+paper/main_report.tex
+paper/main_twocolumn.tex
+experiments/generate_paper_assets.py

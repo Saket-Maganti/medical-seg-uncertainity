@@ -1,0 +1,82 @@
+[
+  {
+    "img_path": "data/DRIVE/test/images/01_test.tif",
+    "mean_uncertainty": 0.019417986273765564
+  },
+  {
+    "img_path": "data/DRIVE/test/images/02_test.tif",
+    "mean_uncertainty": 0.024342261254787445
+  },
+  {
+    "img_path": "data/DRIVE/test/images/03_test.tif",
+    "mean_uncertainty": 0.010176260955631733
+  },
+  {
+    "img_path": "data/DRIVE/test/images/04_test.tif",
+    "mean_uncertainty": 0.020233117043972015
+  },
+  {
+    "img_path": "data/DRIVE/test/images/05_test.tif",
+    "mean_uncertainty": 0.01448762882500887
+  },
+  {
+    "img_path": "data/DRIVE/test/images/06_test.tif",
+    "mean_uncertainty": 0.019506055861711502
+  },
+  {
+    "img_path": "data/DRIVE/test/images/07_test.tif",
+    "mean_uncertainty": 0.010089993476867676
+  },
+  {
+    "img_path": "data/DRIVE/test/images/08_test.tif",
+    "mean_uncertainty": 0.012680765241384506
+  },
+  {
+    "img_path": "data/DRIVE/test/images/09_test.tif",
+    "mean_uncertainty": 0.022470124065876007
+  },
+  {
+    "img_path": "data/DRIVE/test/images/10_test.tif",
+    "mean_uncertainty": 0.012806450948119164
+  },
+  {
+    "img_path": "data/DRIVE/test/images/11_test.tif",
+    "mean_uncertainty": 0.01842689886689186
+  },
+  {
+    "img_path": "data/DRIVE/test/images/12_test.tif",
+    "mean_uncertainty": 0.014869497157633305
+  },
+  {
+    "img_path": "data/DRIVE/test/images/13_test.tif",
+    "mean_uncertainty": 0.01948622427880764
+  },
+  {
+    "img_path": "data/DRIVE/test/images/14_test.tif",
+    "mean_uncertainty": 0.01474796887487173
+  },
+  {
+    "img_path": "data/DRIVE/test/images/15_test.tif",
+    "mean_uncertainty": 0.009512961842119694
+  },
+  {
+    "img_path": "data/DRIVE/test/images/16_test.tif",
+    "mean_uncertainty": 0.01928245835006237
+  },
+  {
+    "img_path": "data/DRIVE/test/images/17_test.tif",
+    "mean_uncertainty": 0.011255458928644657
+  },
+  {
+    "img_path": "data/DRIVE/test/images/18_test.tif",
+    "mean_uncertainty": 0.0142062371596694
+  },
+  {
+    "img_path": "data/DRIVE/test/images/19_test.tif",
+    "mean_uncertainty": 0.013103744015097618
+  },
+  {
+    "img_path": "data/DRIVE/test/images/20_test.tif",
+    "mean_uncertainty": 0.013817008584737778
+  }
+]

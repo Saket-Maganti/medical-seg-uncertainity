@@ -1,0 +1,10 @@
+{
+  "overall_error_rate": 0.05841819755058573,
+  "low_unc_error_rate": 0.011065628328008519,
+  "overconfident_ratio": 0.18942088078321345,
+  "n_overconfident_failures": 3990,
+  "unc_threshold_used": 0.0004775134730152786,
+  "low_unc_percentile": 10.0,
+  "verdict": "PASS",
+  "interpretation": "Low-uncertainty predictions are MORE accurate than average. Uncertainty correctly identifies reliable pixels."
+}

@@ -1,0 +1,3 @@
+inherits: base.yaml
+n_models: 5
+output_dir: results/drive/ensemble

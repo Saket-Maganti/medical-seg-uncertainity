@@ -1,0 +1,30 @@
+{
+  "checkpoint": "checkpoints/unet_mc_dropout_fullft/best_model.pth",
+  "temperature": 2.3094353675842285,
+  "threshold": 0.7,
+  "before": {
+    "dice": 0.7905886173248291,
+    "auc": 0.9600501048734191,
+    "iou": 0.6538525819778442,
+    "ece": 0.04756350745347289,
+    "sensitivity": 0.8268124252557755,
+    "specificity": 0.961988776922226,
+    "global_ece": 0.04724897824413911
+  },
+  "after": {
+    "dice": 0.7931105494499207,
+    "auc": 0.9596628398616571,
+    "iou": 0.6573392152786255,
+    "ece": 0.041290083354841245,
+    "sensitivity": 0.7981626033782959,
+    "specificity": 0.9693395167589187,
+    "global_ece": 0.04012691303312414
+  },
+  "validation_calibration": {
+    "temperature": 2.3094353675842285,
+    "ece_before": 0.04630490731553959,
+    "ece_after": 0.04438033618471764,
+    "ece_improvement": 0.0019245711308219435,
+    "improvement_pct": 4.156300578915253
+  }
+}

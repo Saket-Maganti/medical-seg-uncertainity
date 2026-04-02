@@ -1,0 +1,22 @@
+{
+  "STARE": {
+    "dice": 0.7273640036582947,
+    "auc": 0.9487732790333692,
+    "ece": 0.03823702651787233,
+    "unc_auroc": 0.8462499085864676,
+    "deferral_balanced_f1_coverage": 0.9161306381225586,
+    "deferral_balanced_f1_dice_acc": 0.8138259649276733,
+    "selective_aucc_dice": 0.7729770332574843,
+    "selective_aucc_auc": 0.830862762701481
+  },
+  "CHASE_DB1": {
+    "dice": 0.7257692217826843,
+    "auc": 0.9518575611515411,
+    "ece": 0.03473269017413234,
+    "unc_auroc": 0.8352057792771186,
+    "deferral_balanced_f1_coverage": 0.9358290263584682,
+    "deferral_balanced_f1_dice_acc": 0.8167462348937988,
+    "selective_aucc_dice": 0.7660122451457109,
+    "selective_aucc_auc": 0.8417812041484477
+  }
+}

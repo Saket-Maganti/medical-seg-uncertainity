@@ -1,0 +1,47 @@
+{
+  "fold": 0,
+  "train_indices": [
+    1,
+    10,
+    0,
+    4,
+    6,
+    11,
+    8,
+    3,
+    7,
+    17,
+    13,
+    12,
+    19,
+    5,
+    16,
+    9
+  ],
+  "val_indices": [
+    2,
+    14,
+    18,
+    15
+  ],
+  "patch_checkpoint": "results/crossval/fold_0/patch_train/mc_dropout_cv_fold0_patch/best_model.pth",
+  "full_checkpoint": "results/crossval/fold_0/fullft_train/mc_dropout_cv_fold0_fullft/best_model.pth",
+  "evaluation": {
+    "dice": 0.7806438207626343,
+    "auc": 0.9662553184429278,
+    "iou": 0.6403708457946777,
+    "ece": 0.042839087620275114,
+    "sensitivity": 0.8054335534572601,
+    "specificity": 0.96303331553936,
+    "unc_auroc": 0.8025133515272522,
+    "global_ece": 0.04246033779319902,
+    "threshold": 0.7,
+    "uncertainty_mean": 0.01574518710996258,
+    "uncertainty_std": 0.013689014128618176,
+    "uncertainty_p95": 0.04497203528881072,
+    "uncertainty_max": 0.2099599838256836,
+    "global_unc_auroc": 0.7928872271200407,
+    "avg_runtime_s_per_image": 1.3564235250501953,
+    "method": "mc_dropout"
+  }
+}

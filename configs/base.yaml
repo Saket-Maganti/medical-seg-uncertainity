@@ -1,0 +1,11 @@
+seed: 42
+encoder: resnet34
+img_size: 512
+patch_size: 256
+patches_per_image: 32
+batch_size: 6
+epochs: 80
+lr: 1.0e-4
+weight_decay: 1.0e-4
+dropout_p: 0.3
+n_passes: 30

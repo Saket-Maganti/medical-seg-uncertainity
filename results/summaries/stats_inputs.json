@@ -1,0 +1,5 @@
+{
+  "deterministic": "results/drive/deterministic_fullft/per_image_metrics.json",
+  "mc_dropout": "results/drive/mc_dropout_fullft/per_image_metrics.json",
+  "ensemble": "results/drive/ensemble/per_image_metrics.json"
+}

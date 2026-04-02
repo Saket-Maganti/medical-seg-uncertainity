@@ -1,0 +1,4 @@
+inherits: base.yaml
+stare_dir: data/STARE
+chase_dir: data/CHASE_DB1
+output_dir: results/cross_dataset

@@ -1,0 +1,18 @@
+{
+  "dice": 0.7910957932472229,
+  "auc": 0.959961245623066,
+  "iou": 0.6545355319976807,
+  "ece": 0.043472471189836555,
+  "sensitivity": 0.8269637763500214,
+  "specificity": 0.9622367084026336,
+  "unc_auroc": 0.8383667988583159,
+  "global_ece": 0.043077710441760925,
+  "threshold": 0.7,
+  "uncertainty_mean": 0.010917639670933748,
+  "uncertainty_std": 0.022168949216274353,
+  "uncertainty_p95": 0.057168170996010306,
+  "uncertainty_max": 0.4477829933166504,
+  "global_unc_auroc": 0.8351492300617291,
+  "avg_runtime_s_per_image": 1.4246085750462953,
+  "method": "mc_dropout"
+}
