@@ -1,0 +1,138 @@
+\section{Related work}
+\label{sec:related_work}
+
+\subsection{Medical image segmentation}
+
+U-Net \citep{ronneberger2015unet} and its descendants remain the dominant
+architecture family for medical image segmentation. Encoder-decoder designs
+with skip connections have been extended in numerous directions: attention
+gates \citep{oktay2018attention}, dense connectivity \citep{li2018hdenseunet},
+transformer-based encoders \citep{chen2021transunet}, and multi-scale feature
+fusion \citep{zhou2018unetplusplus}. For retinal vessel segmentation
+specifically, the DRIVE \citep{staal2004drive}, STARE \citep{hoover2000stare},
+and CHASE\_DB1 \citep{fraz2012chase} benchmarks have driven steady
+improvements in Dice and AUC, with recent methods exceeding 0.80 Dice on DRIVE.
+
+Nearly all of this work optimizes aggregate segmentation metrics. A model
+that achieves 0.78 Dice is considered better than one at 0.76, regardless of
+whether the errors cluster on ambiguous images (where a clinician would want
+to look more carefully) or scatter randomly. This paper takes a different
+starting point: given a segmentation model of reasonable quality, how should
+its outputs be used in a decision pipeline?
+
+\subsection{Uncertainty estimation in deep learning}
+
+Bayesian neural networks provide a principled framework for uncertainty but are
+computationally prohibitive for modern architectures \citep{neal1996bayesian,
+blundell2015weight}. Practical approximations fall into three families.
+
+\paragraph{MC Dropout.} Gal and Ghahramani \citep{gal2016dropout} showed that
+applying dropout at test time and averaging multiple stochastic forward passes
+approximates variational inference. The variance (or mutual information) across
+passes quantifies epistemic uncertainty. MC Dropout is widely used in medical
+imaging \citep{nair2020exploring,jungo2018effect,roy2019bayesian} because it
+requires no architectural changes and works with any dropout-equipped network.
+Its weakness is that the quality of the uncertainty estimate depends on
+where dropout layers are placed and on the number of forward passes $T$, with
+diminishing returns beyond $T \approx 20$--30 in our experiments. The
+uncertainty also tends to be diffuse: MC Dropout flags large regions as
+somewhat uncertain rather than precisely localizing errors.
+
+\paragraph{Deep ensembles.} Lakshminarayanan et al.\
+\citep{lakshminarayanan2017simple} train $N$ models with different random
+initializations and use prediction variance across ensemble members as
+uncertainty. Ensembles consistently produce better-calibrated predictions than
+single models \citep{ovadia2019can}, but training $N$ separate models multiplies
+computational cost. In our experiments, a 5-member ensemble requires roughly
+$4\times$ the inference time of a single MC Dropout model.
+
+\paragraph{Test-Time Augmentation.} TTA generates multiple predictions by
+applying geometric or photometric transformations to the input and aggregating
+the (inverse-transformed) outputs \citep{wang2019aleatoric,
+ayhan2018test,moshkov2020tta}. Disagreement across augmented predictions
+indicates regions where the model's output is sensitive to input perturbations.
+TTA captures a form of uncertainty that is complementary to MC Dropout:
+where MC Dropout probes the model's weight posterior, TTA probes sensitivity
+to input variations that should, in principle, not change the prediction. This
+distinction is relevant because boundary regions and thin structures (common
+error sources in vessel segmentation) tend to produce high TTA disagreement
+even when MC Dropout uncertainty is moderate.
+
+Mehrtash et al.\ \citep{mehrtash2020confidence} compared MC Dropout and TTA
+for brain tumor segmentation and found that TTA-based uncertainty correlated
+more strongly with segmentation error. Our work confirms this finding for
+retinal vessels and extends it to the deferral setting, showing that TTA's
+superior uncertainty quality translates directly to better deferral decisions.
+
+\subsection{Calibration}
+
+A model is well calibrated if its predicted probabilities match empirical
+frequencies: among all pixels assigned probability 0.8, roughly 80\% should
+be positive. Expected Calibration Error (ECE) \citep{naeini2015obtaining}
+bins predictions by confidence and measures the average gap between predicted
+and observed accuracy. Temperature scaling \citep{guo2017calibration} is the
+standard post-hoc fix: a single scalar $T$ is learned on a validation set to
+rescale logits before the sigmoid/softmax, shrinking or expanding the
+confidence distribution.
+
+The assumption behind calibration as a preprocessing step for decision-making
+is that calibrated probabilities are more informative. This assumption is not
+always correct. Calibration optimizes a global property (the probability
+distribution matches reality on average) but deferral requires a local
+property (high uncertainty should coincide with high error \emph{per pixel}).
+A model can be perfectly calibrated yet have uncertainty that fails to
+discriminate correct from incorrect predictions. We test this empirically
+and find that temperature scaling barely moves ECE (from 0.038 to 0.038 for
+MC Dropout, from 0.037 to 0.039 for TTA) and does not improve the tracked
+deferral operating points in the main comparison bundle.
+
+Laves et al.\ \citep{laves2020well} reached a similar conclusion for
+classification, observing that calibration and selective prediction can be
+at odds. Our work extends this observation to dense prediction (segmentation)
+and to the specific setting of pixel-level deferral.
+
+\subsection{Selective prediction and deferral}
+
+Selective prediction, also called prediction with a reject option, has a long
+history in classification \citep{chow1970optimum,el2010foundations}. The idea
+is simple: a model outputs both a prediction and a confidence score, and
+predictions below a confidence threshold are withheld. Geifman and El-Yaniv
+\citep{geifman2017selective} formalized risk-coverage curves for deep
+classifiers, showing that selective prediction can dramatically reduce error
+rates at modest coverage costs.
+
+Translating selective prediction to segmentation is harder because the unit
+of abstention is unclear. Should the model abstain on individual pixels, on
+patches, or on entire images? Pixel-level deferral is the most granular but
+produces fragmented deferral maps that may be impractical for human review.
+Image-level deferral is cleaner but discards good predictions along with
+bad ones. We adopt pixel-level deferral but evaluate it at multiple
+granularities, including per-image error reduction and coverage-averaged
+metrics.
+
+DeVries and Taylor \citep{devries2018learning} trained a separate confidence
+branch alongside a classifier. Corbiere et al.\ \citep{corbiere2019addressing}
+proposed learning a failure prediction module. In medical imaging, Jungo et al.\
+\citep{jungo2020analyzing} studied how uncertainty thresholds affect the
+quality of retained predictions in brain lesion segmentation, and
+Mehrtash et al.\ \citep{mehrtash2020confidence} evaluated deferral using
+MC Dropout for prostate segmentation.
+
+Our confidence-aware deferral strategy differs from these approaches in that
+it does not require training an auxiliary network. Instead, it combines the
+existing uncertainty map with the model's own prediction confidence through a
+simple multiplicative score, $s = u \cdot (1 - c)$, where $u$ is uncertainty
+and $c$ is prediction confidence. This has a clear interpretation: a pixel
+is deferred when it is both uncertain \emph{and} the model's prediction is
+near the decision boundary. Uncertain pixels where the model is nonetheless
+confident (far from $p = 0.5$) are retained. This design costs nothing
+computationally and, as we show, substantially improves deferral efficiency.
+
+The learning-to-defer framework of Madras et al.\ \citep{madras2018predict}
+and Mozannar and Sontag \citep{mozannar2020consistent} formalizes deferral as
+a joint optimization of model and expert, assuming known expert accuracy. Our
+setting is simpler and arguably more practical: we assume no model of the
+human expert and instead optimize deferral thresholds on a validation set to
+maximize a task-relevant objective (error reduction at minimum coverage cost).
+This makes our approach applicable to any existing segmentation pipeline
+without retraining.

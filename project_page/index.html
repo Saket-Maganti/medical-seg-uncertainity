@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>From Prediction to Decision</title>
+    <meta
+      name="description"
+      content="Project page for From Prediction to Decision: Uncertainty-Aware Deferral for Reliable Medical Image Segmentation."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div class="hero-noise"></div>
+        <div class="hero-content">
+          <p class="eyebrow">Research Project Page</p>
+          <h1>
+            From Prediction to Decision:
+            <span>Uncertainty-Aware Deferral for Reliable Medical Image Segmentation</span>
+          </h1>
+          <p class="authors">Saket Maganti</p>
+          <div class="hero-links">
+            <a class="button primary" href="../arxiv_submission/main.pdf" target="_blank" rel="noreferrer">Paper PDF</a>
+            <a
+              class="button secondary"
+              href="https://github.com/Saket-Maganti/medical-seg-uncertainity"
+              target="_blank"
+              rel="noreferrer"
+            >
+              GitHub
+            </a>
+            <a class="button secondary" href="../README.md" target="_blank" rel="noreferrer">README</a>
+          </div>
+          <p class="tagline">
+            Reliable segmentation requires more than good masks. This project studies how
+            uncertainty estimation and deferral policies work together to decide which
+            predictions should be trusted and which should be reviewed.
+          </p>
+        </div>
+      </header>
+
+      <main class="content">
+        <section class="badge-row">
+          <span>PyTorch</span>
+          <span>U-Net + ResNet Encoder</span>
+          <span>MC Dropout</span>
+          <span>TTA</span>
+          <span>Adaptive Deferral</span>
+          <span>Confidence-Aware Deferral</span>
+          <span>Temperature Scaling</span>
+          <span>DRIVE / STARE / CHASE_DB1</span>
+        </section>
+
+        <section class="summary-grid">
+          <article class="stat-card accent-red">
+            <p class="stat-label">Best Decision Result</p>
+            <h2>79.4%</h2>
+            <p class="stat-copy">Error reduction with TTA plus image-adaptive deferral on DRIVE.</p>
+          </article>
+          <article class="stat-card accent-blue">
+            <p class="stat-label">Review Budget</p>
+            <h2>25.0%</h2>
+            <p class="stat-copy">Deferred pixels for the strongest high-budget operating point.</p>
+          </article>
+          <article class="stat-card accent-green">
+            <p class="stat-label">Uncertainty Quality</p>
+            <h2>0.881</h2>
+            <p class="stat-copy">TTA uncertainty AUROC in the unified comparison bundle used for downstream decisions.</p>
+          </article>
+          <article class="stat-card accent-gold">
+            <p class="stat-label">Low-Budget Option</p>
+            <h2>12.1%</h2>
+            <p class="stat-copy">Deferred pixels for the TTA confidence-aware operating point, which removes roughly 55% of the error.</p>
+          </article>
+        </section>
+
+        <section class="section">
+          <div class="section-heading">
+            <p class="section-kicker">Overview</p>
+            <h2>Prediction is only the first half of the problem.</h2>
+          </div>
+          <div class="two-column">
+            <div>
+              <p>
+                This project studies retinal vessel segmentation through the lens of
+                reliability. A segmentation model can produce a strong average Dice score and
+                still fail exactly where human review matters most. Instead of treating
+                uncertainty as an afterthought, the repository models the full decision chain:
+                predict a mask, estimate uncertainty, and decide where the system should defer.
+              </p>
+              <p>
+                The codebase compares Monte Carlo Dropout and Test-Time Augmentation as
+                uncertainty sources, then evaluates how three different deferral strategies use
+                those uncertainty maps. The goal is not only to improve segmentation metrics, but
+                to build a more reliable prediction-to-review workflow.
+              </p>
+            </div>
+            <div class="callout">
+              <p class="callout-title">Main empirical takeaway</p>
+              <p>
+                TTA consistently produces stronger uncertainty rankings than MC Dropout for this
+                task. In the main comparison bundle, TTA reaches uncertainty AUROC 0.881 versus
+                0.722 for MC Dropout, and those stronger rankings translate into better selective
+                prediction, lower accepted-region risk, and better deferral decisions.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-heading">
+            <p class="section-kicker">Method</p>
+            <h2>Segmentation, uncertainty, and deferral as one pipeline.</h2>
+          </div>
+          <div class="method-grid">
+            <article class="info-card">
+              <h3>1. Segmentation</h3>
+              <p>
+                A U-Net-style segmentation model with a ResNet encoder predicts vessel
+                probabilities on DRIVE and is evaluated under both in-domain and out-of-domain
+                settings.
+              </p>
+            </article>
+            <article class="info-card">
+              <h3>2. Uncertainty</h3>
+              <p>
+                Uncertainty is estimated either by repeated stochastic dropout passes or by
+                deterministic geometric test-time augmentations whose disagreement exposes fragile
+                structures and boundaries.
+              </p>
+            </article>
+            <article class="info-card">
+              <h3>3. Deferral</h3>
+              <p>
+                The uncertainty map feeds a decision layer that accepts confident pixels and
+                defers risky ones using global, adaptive, or confidence-aware policies.
+              </p>
+            </article>
+          </div>
+
+          <figure class="feature-figure">
+            <img src="./assets/pipeline.png" alt="Pipeline diagram" />
+            <figcaption>
+              The project’s core framing: prediction and uncertainty estimation feed a deferral
+              policy that decides what should be automated and what should be reviewed.
+            </figcaption>
+          </figure>
+        </section>
+
+        <section class="section">
+          <div class="section-heading">
+            <p class="section-kicker">Results</p>
+            <h2>TTA dominates the decision-quality frontier.</h2>
+          </div>
+          <div class="result-grid">
+            <article class="info-card tall">
+              <h3>TTA beats MC Dropout</h3>
+              <p>
+                In the consolidated comparison artifacts, TTA reaches uncertainty AUROC 0.881
+                while MC Dropout reaches 0.722 in the same comparison family. TTA is also faster
+                in this bundle: about 0.86 seconds per image versus about 2.65 seconds for MC
+                Dropout.
+              </p>
+            </article>
+            <article class="info-card tall">
+              <h3>Adaptive deferral gives the headline result</h3>
+              <p>
+                TTA with adaptive deferral reduces mean error by about 79.4% while deferring
+                25.0% of pixels. This is the strongest high-budget operating point in the
+                repository.
+              </p>
+            </article>
+            <article class="info-card tall">
+              <h3>Confidence-aware deferral is the low-budget choice</h3>
+              <p>
+                For smaller review budgets, confidence-aware deferral gives nearly the same error
+                removal as TTA global deferral while deferring fewer pixels. TTA confidence-aware
+                deferral removes about 55% of error while deferring only about 12% of pixels.
+              </p>
+            </article>
+          </div>
+
+          <figure class="feature-figure wide">
+            <img src="./assets/summary_scatter.png" alt="Summary scatter plot" />
+            <figcaption>
+              The decision design space after label cleanup with `adjustText`, explicit offsets,
+              and arrow connectors. TTA plus adaptive deferral is the strongest high-budget point,
+              while TTA plus confidence-aware is the tighter low-budget operating point.
+            </figcaption>
+          </figure>
+        </section>
+
+        <section class="section">
+          <div class="section-heading">
+            <p class="section-kicker">Risk-Coverage</p>
+            <h2>Useful uncertainty is visible in the curve, not only in one scalar.</h2>
+          </div>
+          <div class="two-column">
+            <div>
+              <p>
+                Risk-coverage analysis asks what happens when the system accepts only the most
+                certain pixels. A strong uncertainty estimator should make accepted-region error
+                drop quickly as coverage decreases.
+              </p>
+              <p>
+                That is why the project reports both uncertainty AUROC and coverage-based metrics
+                such as AUCC. Together, they show not only whether uncertainty correlates with
+                failure, but how much practical value can be extracted from that ranking.
+              </p>
+            </div>
+            <div class="callout">
+              <p class="callout-title">Operational interpretation</p>
+              <p>
+                If two methods have similar segmentation quality but one reaches a better
+                accepted-region Dice at the same coverage, that method is better for human review
+                workflows.
+              </p>
+            </div>
+          </div>
+
+          <figure class="feature-figure">
+            <img src="./assets/risk_coverage.png" alt="Risk coverage plot" />
+            <figcaption>
+              TTA's risk-coverage curve drops faster as uncertain pixels are removed, and its
+              coverage-versus-Dice curve reaches high accepted-region performance earlier than MC
+              Dropout. That is why it is the stronger uncertainty source for downstream decisions.
+            </figcaption>
+          </figure>
+        </section>
+
+        <section class="section">
+          <div class="section-heading">
+            <p class="section-kicker">Deferral Modes</p>
+            <h2>Three policies answer three different operational questions.</h2>
+          </div>
+          <div class="method-grid">
+            <article class="info-card">
+              <h3>Global</h3>
+              <p>
+                The simplest policy: one threshold over uncertainty for every image. Easy to
+                deploy, but less flexible under changing image difficulty.
+              </p>
+            </article>
+            <article class="info-card">
+              <h3>Adaptive</h3>
+              <p>
+                A per-image percentile threshold that normalizes by image difficulty and gives the
+                strongest high-budget result in the repository.
+              </p>
+            </article>
+            <article class="info-card">
+              <h3>Confidence-Aware</h3>
+              <p>
+                Combines uncertainty with boundary proximity so review budget focuses on uncertain
+                and borderline pixels rather than uncertain-but-confident ones.
+              </p>
+            </article>
+          </div>
+
+          <figure class="feature-figure">
+            <img src="./assets/deferral_3mode_tta.png" alt="TTA deferral comparison" />
+            <figcaption>
+              TTA policy operating points. Adaptive deferral gives the largest absolute error
+              removal, confidence-aware gives the strongest efficiency per deferred percentage
+              point, and global deferral sits between them.
+            </figcaption>
+          </figure>
+        </section>
+
+        <section class="section">
+          <div class="section-heading">
+            <p class="section-kicker">Figures</p>
+            <h2>Large visuals for the main evidence.</h2>
+          </div>
+          <div class="gallery-grid">
+            <figure class="gallery-card">
+              <img src="./assets/method_comparison_bars.png" alt="Method comparison bars" />
+              <figcaption>
+                Method comparison bars summarizing segmentation quality, calibration, uncertainty
+                ranking quality, and operating-point behavior across all compared variants.
+              </figcaption>
+            </figure>
+            <figure class="gallery-card">
+              <img src="./assets/qualitative_comparison.png" alt="Qualitative comparison" />
+              <figcaption>
+                Qualitative segmentation and uncertainty examples showing where vessel boundaries
+                and thin structures remain challenging.
+              </figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-heading">
+            <p class="section-kicker">Takeaway</p>
+            <h2>Choose uncertainty methods by the decisions they enable.</h2>
+          </div>
+          <div class="two-column">
+            <div>
+              <p>
+                The central lesson of this repository is that uncertainty should not be judged
+                only by calibration or aesthetics of uncertainty maps. It should be judged by how
+                effectively it reduces error when paired with explicit decision policies.
+              </p>
+              <p>
+                On this project, TTA is the strongest practical default. It gives better
+                uncertainty rankings than MC Dropout, stronger downstream deferral behavior, and a
+                better runtime-quality tradeoff in the unified comparison bundle.
+              </p>
+            </div>
+            <div class="callout highlight">
+              <p class="callout-title">Recommended practical default</p>
+              <p>
+                Use TTA when you want the best overall uncertainty source, adaptive deferral when
+                you can review more pixels, and confidence-aware deferral when review budget is
+                tight.
+              </p>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
