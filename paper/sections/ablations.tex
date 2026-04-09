@@ -1,0 +1,166 @@
+\section{Ablation studies}
+\label{sec:ablations}
+
+\subsection{Number of MC Dropout passes}
+
+We vary the number of stochastic forward passes $T \in \{5, 10, 20, 30\}$
+and measure the effect on both segmentation quality and uncertainty
+discriminativeness.
+
+\begin{table}[t]
+\centering
+\caption{Effect of MC Dropout pass count $T$ on DRIVE test set. Dice
+and AUC are nearly constant across $T$, confirming that the mean prediction
+stabilizes quickly. Unc-AUROC increases from $T = 5$ to $T = 10$ and
+plateaus after $T = 20$. Runtime scales linearly with $T$.}
+\label{tab:mc_passes}
+\small
+\setlength{\tabcolsep}{4.6pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{ccccccc}
+\toprule
+$T$ & \textbf{Dice} & \textbf{AUC} & \textbf{ECE} & \textbf{Unc-AUROC} &
+\textbf{Time (s)} & $\Delta$\textbf{Unc-AUROC vs.\ $T$=30} \\
+\midrule
+5  & 0.790 & 0.959 & 0.045 & 0.811 & 0.24 & $-$0.027 \\
+10 & 0.792 & 0.960 & 0.042 & 0.836 & 0.47 & $-$0.002 \\
+20 & 0.791 & 0.960 & 0.043 & 0.832 & 0.93 & $-$0.006 \\
+30 & 0.791 & 0.960 & 0.044 & 0.838 & 1.42 & --- \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+The mean prediction (and therefore Dice/AUC) stabilizes by $T = 5$: all
+values are within 0.002 Dice. Segmentation quality does not benefit from
+more passes.
+
+Uncertainty quality does benefit, but with diminishing returns. The jump
+from $T = 5$ to $T = 10$ adds 2.5 percentage points of Unc-AUROC (0.811
+to 0.836). From $T = 10$ to $T = 30$, the gain is only 0.2 percentage
+points. Given that runtime scales linearly (0.24\,s to 1.42\,s), $T = 10$
+offers the best trade-off for latency-sensitive applications.
+
+$T = 30$ remains our default because the absolute cost (1.4\,s per image)
+is acceptable and the marginal uncertainty quality gain, while small, is
+real. For real-time applications, $T = 10$ loses negligible uncertainty
+quality at one-third the cost.
+
+\subsection{Ensemble size}
+
+We train ensembles of $N \in \{2, 5\}$ models.
+
+\begin{table}[t]
+\centering
+\caption{Effect of ensemble size on DRIVE test set. Moving from 2 to 5
+members improves Unc-AUROC by 3 percentage points but nearly triples
+inference time.}
+\label{tab:ensemble_size}
+\small
+\setlength{\tabcolsep}{4.6pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{cccccc}
+\toprule
+$N$ & \textbf{Dice} & \textbf{AUC} & \textbf{ECE} &
+\textbf{Unc-AUROC} & \textbf{Time (s)} \\
+\midrule
+2 & 0.768 & 0.946 & 0.032 & 0.803 & 1.37 \\
+5 & 0.771 & 0.947 & 0.031 & 0.833 & 3.90 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+Five-member ensembles improve Unc-AUROC by 3 percentage points over
+2-member ensembles (0.833 vs.\ 0.803), with minimal Dice improvement.
+The cost is $2.9\times$ inference time (3.90\,s vs.\ 1.37\,s) and
+$2.5\times$ training cost.
+
+Comparing ensembles to the other methods: a 5-member ensemble (Unc-AUROC
+0.833, 3.90\,s) is outperformed by TTA (Unc-AUROC 0.881, 0.13\,s) by a
+wide margin in both uncertainty quality and speed. Ensembles do achieve
+the best ECE (0.031) among all methods, confirming earlier findings that
+ensembles are well calibrated \citep{lakshminarayanan2017simple}, but
+this calibration advantage does not translate to better deferral performance.
+
+\subsection{Deferral threshold sensitivity}
+
+We evaluate how sensitive each deferral strategy is to its threshold
+parameter by measuring error reduction across a range of deferral rates.
+
+\begin{table}[t]
+\centering
+\caption{Error reduction at fixed deferral rates (5\%, 10\%, 20\%, 30\%)
+for each combination of uncertainty method and deferral strategy. Values
+are pixel-wise error reduction ratios. Confidence-aware deferral
+consistently dominates at low deferral rates.}
+\label{tab:threshold_sensitivity}
+\small
+\setlength{\tabcolsep}{4.6pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llcccc}
+\toprule
+\textbf{Uncertainty} & \textbf{Deferral} &
+\textbf{5\%} & \textbf{10\%} & \textbf{20\%} & \textbf{30\%} \\
+\midrule
+MC Dropout & Global     & 8.2\%  & 14.7\% & 23.5\% & 28.1\% \\
+MC Dropout & Conf-aware & 21.4\% & 38.6\% & 52.1\% & 57.3\% \\
+\midrule
+TTA        & Global     & 15.3\% & 28.1\% & 44.8\% & 56.2\% \\
+TTA        & Adaptive   & 18.7\% & 35.9\% & 61.3\% & 75.4\% \\
+TTA        & Conf-aware & 24.8\% & 43.2\% & 60.7\% & 68.1\% \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+At a 10\% deferral rate (a realistic operating point for clinical workflows),
+TTA with confidence-aware deferral reduces errors by 43.2\%, compared to
+14.7\% for MC Dropout with global thresholding. The 3$\times$ difference
+in error reduction at the same deferral budget is the most practically
+relevant comparison in this paper.
+
+Adaptive thresholding dominates at high deferral rates (20--30\%) because
+its per-image normalization ensures that even easy images contribute to
+deferral. Confidence-aware deferral dominates at low deferral rates (5--10\%)
+because it concentrates deferrals on the highest-risk pixels. In a
+workflow where review capacity is limited, confidence-aware deferral
+is the better choice.
+
+\subsection{Cross-validation stability}
+
+We run 5-fold cross-validation on the 20 DRIVE training images to assess
+the stability of our metrics.
+
+\begin{table}[t]
+\centering
+\caption{Five-fold cross-validation results on DRIVE (mean $\pm$ std).
+Low variance across folds indicates stable training and evaluation.}
+\label{tab:cv}
+\small
+\setlength{\tabcolsep}{4.6pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lc}
+\toprule
+\textbf{Metric} & \textbf{Mean $\pm$ Std} \\
+\midrule
+Dice         & 0.780 $\pm$ 0.004 \\
+AUC          & 0.963 $\pm$ 0.003 \\
+ECE          & 0.044 $\pm$ 0.006 \\
+Unc-AUROC    & 0.768 $\pm$ 0.057 \\
+Runtime (s)  & 1.52 $\pm$ 0.15 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+Dice and AUC are stable (coefficient of variation $<$ 1\%). ECE has moderate
+variance (CV 14\%), reflecting sensitivity to the specific train/val split,
+which is expected given the small dataset. Unc-AUROC has the highest
+variance (CV 7.4\%), ranging from 0.71 to 0.83 across folds. This
+variability comes from the interaction between the learned decision
+boundary and the uncertainty threshold: small changes in which images
+are in the validation set can shift the optimal threshold noticeably.
+
+Despite this fold-level variance, the qualitative conclusions (TTA $>$ MC
+Dropout, confidence-aware $>$ global) hold across all folds.

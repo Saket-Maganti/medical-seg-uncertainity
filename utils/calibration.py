@@ -23,7 +23,11 @@ import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
 from pathlib import Path
+from utils.figure_style import apply_publication_style, save_figure, style_axes
 from utils.metrics import expected_calibration_error, reliability_diagram_data
+
+
+apply_publication_style()
 
 
 class TemperatureScaler(nn.Module):
@@ -110,7 +114,7 @@ class TemperatureScaler(nn.Module):
     def _plot_reliability_comparison(self, probs_before, probs_after, labels,
                                       ece_before, ece_after, output_dir):
         Path(output_dir).mkdir(parents=True, exist_ok=True)
-        fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+        fig, axes = plt.subplots(1, 2, figsize=(13.2, 5.4), constrained_layout=True)
 
         for ax, probs, ece, title in [
             (axes[0], probs_before, ece_before, "Before temperature scaling"),
@@ -125,14 +129,69 @@ class TemperatureScaler(nn.Module):
             ax.set_xlabel("Confidence"); ax.set_ylabel("Accuracy")
             ax.legend(fontsize=9); ax.set_xlim(0, 1); ax.set_ylim(0, 1)
             ax.grid(alpha=0.3)
+            ax.margins(x=0.02, y=0.04)
+            style_axes(ax)
 
-        plt.suptitle(f"Reliability Diagram: Temperature Scaling "
-                     f"(T={self.temperature.item():.3f})", fontsize=13)
-        plt.tight_layout()
+        fig.suptitle(
+            f"Reliability Diagram: Temperature Scaling (T={self.temperature.item():.3f})",
+            fontsize=13,
+        )
         save_path = Path(output_dir) / "calibration_comparison.png"
-        plt.savefig(save_path, dpi=150, bbox_inches="tight")
-        plt.close()
+        save_figure(fig, save_path, dpi=220)
         print(f"  Saved: {save_path}")
+
+
+def calibrate_probs(probs: np.ndarray, temperature: float) -> np.ndarray:
+    """
+    Apply temperature scaling to already-aggregated probabilities.
+
+    Converts: probs → pseudo-logits → scale by 1/T → sigmoid.
+    Appropriate for MC Dropout and TTA where raw per-pass logits are
+    unavailable after aggregation.
+
+    Args:
+        probs:       (N,) or (H, W) probability array in (0, 1)
+        temperature: learned temperature T > 0 (>1 softens, <1 sharpens)
+
+    Returns:
+        Calibrated probabilities, same shape as input.
+    """
+    eps = 1e-7
+    probs_clipped = np.clip(probs, eps, 1.0 - eps)
+    logits = np.log(probs_clipped / (1.0 - probs_clipped))   # logit(p)
+    scaled = logits / max(float(temperature), 0.05)
+    return (1.0 / (1.0 + np.exp(-scaled))).astype(np.float32)
+
+
+def fit_temperature_from_probs(
+    val_probs: np.ndarray,
+    val_labels: np.ndarray,
+    lr: float = 0.01,
+    max_iter: int = 500,
+    verbose: bool = True,
+):
+    """
+    Fit temperature scaling from aggregated probabilities (not raw logits).
+
+    Converts probs to pseudo-logits first, then optimises T via NLL.
+    Appropriate for MC Dropout and TTA where only aggregated probs are available.
+
+    Args:
+        val_probs:  (N,) validation probabilities (after aggregation)
+        val_labels: (N,) binary ground-truth labels
+        lr:         LBFGS learning rate
+        max_iter:   max iterations
+
+    Returns:
+        (T, scaler) — learned temperature float and fitted TemperatureScaler
+    """
+    eps = 1e-7
+    probs_clipped = np.clip(val_probs, eps, 1.0 - eps)
+    pseudo_logits = np.log(probs_clipped / (1.0 - probs_clipped))
+
+    scaler = TemperatureScaler()
+    T = scaler.fit(pseudo_logits, val_labels, lr=lr, max_iter=max_iter, verbose=verbose)
+    return T, scaler
 
 
 def fit_temperature_on_model(model, val_loader, device,

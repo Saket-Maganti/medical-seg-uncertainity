@@ -18,10 +18,17 @@ Usage:
     sp.run(output_dir="results/selective")
 """
 
+import csv
+
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 import json
+
+from utils.figure_style import apply_publication_style, save_figure, style_axes
+
+
+apply_publication_style()
 from utils.metrics import dice_coefficient, compute_auc
 
 
@@ -119,6 +126,28 @@ class SelectivePrediction:
         self.sweep_results = results
         return results
 
+    def to_csv(self, path: str, scenario: str = "") -> None:
+        """
+        Save the full coverage sweep to risk_coverage.csv.
+
+        Columns: scenario, coverage, dice, auc, error_rate,
+                 n_accepted, max_unc_accepted
+        """
+        if not hasattr(self, "sweep_results"):
+            raise RuntimeError("Call sweep_coverage() first.")
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        fieldnames = [
+            "scenario", "coverage", "dice", "auc",
+            "error_rate", "n_accepted", "max_unc_accepted",
+        ]
+        with open(path, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
+            writer.writeheader()
+            for row in self.sweep_results:
+                writer.writerow({"scenario": scenario, **row})
+        print(f"  Saved: {path}")
+
     def area_under_coverage_curve(self, metric: str = "dice") -> float:
         """
         AUCC: Area Under Coverage-metric Curve.
@@ -141,7 +170,7 @@ class SelectivePrediction:
         dice = [r["dice"]     for r in rs]
         auc  = [r["auc"]      for r in rs]
 
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 5))
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13.2, 5.4), constrained_layout=True)
 
         ax1.plot(cov, dice, color="#4C72B0", linewidth=2.5, label=method_name)
         ax1.axhline(0.82, color="#E07B54", linestyle="--", linewidth=1.2,
@@ -154,6 +183,7 @@ class SelectivePrediction:
                       f"AUCC = {self.area_under_coverage_curve('dice'):.4f}", fontsize=12)
         ax1.legend(fontsize=10); ax1.grid(alpha=0.3)
         ax1.set_xlim(0.1, 1.0)
+        ax1.margins(x=0.02, y=0.08)
 
         ax2.plot(cov, auc, color="#54A87A", linewidth=2.5, label=method_name)
         ax2.axhline(0.98, color="#E07B54", linestyle="--", linewidth=1.2,
@@ -164,11 +194,12 @@ class SelectivePrediction:
                       f"AUCC = {self.area_under_coverage_curve('auc'):.4f}", fontsize=12)
         ax2.legend(fontsize=10); ax2.grid(alpha=0.3)
         ax2.set_xlim(0.1, 1.0)
+        ax2.margins(x=0.02, y=0.08)
 
         plt.suptitle(f"Selective Prediction Curves — {method_name}", fontsize=14)
-        plt.tight_layout()
-        plt.savefig(save_path, dpi=150, bbox_inches="tight")
-        plt.close()
+        style_axes(ax1)
+        style_axes(ax2)
+        save_figure(fig, save_path)
         print(f"  Saved: {save_path}")
 
     def _plot_risk_coverage(self, save_path, method_name):
@@ -176,28 +207,40 @@ class SelectivePrediction:
         cov  = [r["coverage"]   for r in rs]
         risk = [r["error_rate"] for r in rs]
 
-        fig, ax = plt.subplots(figsize=(7, 5))
+        fig, ax = plt.subplots(figsize=(7.4, 5.4), constrained_layout=True)
         ax.plot(cov, risk, color="#E07B54", linewidth=2.5, label=method_name)
         ax.fill_between(cov, risk, alpha=0.15, color="#E07B54")
         ax.set_xlabel("Coverage", fontsize=12)
         ax.set_ylabel("Risk (error rate on accepted pixels)", fontsize=12)
         ax.set_title("Risk-Coverage Curve\n"
                      "Lower risk at lower coverage = uncertainty is useful", fontsize=12)
-        ax.legend(fontsize=10); ax.grid(alpha=0.3)
+        ax.legend(fontsize=10)
         ax.set_xlim(0.1, 1.0)
-        plt.tight_layout()
-        plt.savefig(save_path, dpi=150, bbox_inches="tight")
-        plt.close()
+        ax.margins(x=0.02, y=0.08)
+        style_axes(ax)
+        save_figure(fig, save_path)
         print(f"  Saved: {save_path}")
 
-    def run(self, output_dir: str, method_name: str = "MC Dropout") -> dict:
+    def run(
+        self,
+        output_dir: str,
+        method_name: str = "MC Dropout",
+        scenario: str = "",
+        save_csv: bool = True,
+    ) -> dict:
         print(f"\n[SelectivePrediction] Sweeping coverage for {method_name}...")
         self.sweep_coverage()
         self.plot_all(output_dir, method_name)
 
+        if save_csv:
+            csv_path = Path(output_dir) / "risk_coverage.csv"
+            self.to_csv(str(csv_path), scenario=scenario or method_name)
+
         summary = {
-            "aucc_dice": self.area_under_coverage_curve("dice"),
-            "aucc_auc":  self.area_under_coverage_curve("auc"),
+            "method":            method_name,
+            "scenario":          scenario,
+            "aucc_dice":         self.area_under_coverage_curve("dice"),
+            "aucc_auc":          self.area_under_coverage_curve("auc"),
             "full_coverage_dice": self.sweep_results[-1]["dice"],
             "at_90_coverage":    next(
                 (r for r in self.sweep_results if r["coverage"] >= 0.9), {}),

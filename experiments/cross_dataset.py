@@ -40,6 +40,10 @@ from utils.deferral import DeferralPolicy
 from utils.mc_dropout import mc_dropout_predict
 from utils.selective_prediction import SelectivePrediction
 from utils.stats import bootstrap_ci_dict
+from utils.figure_style import apply_publication_style, save_figure, style_axes
+
+
+apply_publication_style()
 
 
 def evaluate_on_dataset(model, loader, device, n_passes, dataset_name, dataset_output_dir: Path):
@@ -163,7 +167,7 @@ def _plot_cross_dataset(all_results, save_path):
     labels   = ["Dice", "AUC", "ECE", "Unc-AUROC"]
     colors   = ["#54A87A", "#E07B54", "#9B59B6"]
 
-    fig, axes = plt.subplots(1, 4, figsize=(16, 5))
+    fig, axes = plt.subplots(1, 4, figsize=(16.2, 5.3), constrained_layout=True)
 
     for col, (metric, label) in enumerate(zip(metrics, labels)):
         ax = axes[col]
@@ -175,11 +179,20 @@ def _plot_cross_dataset(all_results, save_path):
         errs  = [[m - l for m, l in zip(means, lo)],
                  [h - m for m, h in zip(means, hi)]]
 
-        ax.bar(datasets, means, color=colors[:len(datasets)],
-               alpha=0.8, yerr=errs, capsize=5, error_kw={"linewidth": 1.5})
+        ax.bar(
+            datasets,
+            means,
+            color=colors[:len(datasets)],
+            alpha=0.84,
+            yerr=errs,
+            capsize=5,
+            error_kw={"linewidth": 1.5},
+        )
         ax.set_title(label, fontsize=12)
         ax.set_ylabel(label, fontsize=10)
         ax.grid(axis="y", alpha=0.3)
+        ax.margins(x=0.08, y=0.1)
+        style_axes(ax)
 
         if metric == "dice":
             ax.axhline(0.82, color="red", linestyle="--", linewidth=0.8)
@@ -188,9 +201,7 @@ def _plot_cross_dataset(all_results, save_path):
 
     plt.suptitle("Cross-Dataset Generalization (zero-shot)\n"
                  "Error bars = 95% bootstrap CI", fontsize=13)
-    plt.tight_layout()
-    plt.savefig(save_path, dpi=150, bbox_inches="tight")
-    plt.close()
+    save_figure(fig, save_path)
     print(f"  Saved: {save_path}")
 
 
@@ -198,16 +209,16 @@ def _plot_uncertainty_shift(all_results, save_path):
     datasets = list(all_results.keys())
     values = [all_results[ds].get("per_image_uncertainty", []) for ds in datasets]
 
-    fig, ax = plt.subplots(figsize=(8, 5))
+    fig, ax = plt.subplots(figsize=(8.2, 5.2), constrained_layout=True)
     ax.violinplot(values, showmeans=True, showmedians=True)
     ax.set_xticks(range(1, len(datasets) + 1))
     ax.set_xticklabels(datasets)
     ax.set_ylabel("Mean image uncertainty")
     ax.set_title("Uncertainty shift across datasets")
     ax.grid(axis="y", alpha=0.3)
-    plt.tight_layout()
-    plt.savefig(save_path, dpi=150, bbox_inches="tight")
-    plt.close()
+    ax.margins(x=0.08, y=0.1)
+    style_axes(ax)
+    save_figure(fig, save_path)
     print(f"  Saved: {save_path}")
 
 

@@ -37,6 +37,10 @@ from pathlib import Path
 from typing import List, Optional
 import json
 from utils.mc_dropout import mc_dropout_predict
+from utils.figure_style import apply_publication_style, save_figure, style_axes
+
+
+apply_publication_style()
 
 
 class ReliabilityChecker:
@@ -346,7 +350,7 @@ class ReliabilityChecker:
         sigmas = sorted(results.keys())
         uncs   = [results[s]["mean_uncertainty"] for s in sigmas]
 
-        fig, ax = plt.subplots(figsize=(7, 4))
+        fig, ax = plt.subplots(figsize=(7.4, 4.4), constrained_layout=True)
         ax.plot(sigmas, uncs, "o-", color="#4C72B0", linewidth=2.5, markersize=8)
         ax.fill_between(sigmas, uncs, alpha=0.15, color="#4C72B0")
         ax.set_xlabel("Gaussian noise σ", fontsize=12)
@@ -356,13 +360,13 @@ class ReliabilityChecker:
                      f"({'PASS ✓' if rho > 0.9 else 'WARN ⚠' if rho > 0.6 else 'FAIL ✗'})",
                      fontsize=12)
         ax.grid(alpha=0.3)
-        plt.tight_layout()
-        plt.savefig(f"{output_dir}/noise_sensitivity.png", dpi=150, bbox_inches="tight")
-        plt.close()
+        ax.margins(x=0.04, y=0.12)
+        style_axes(ax)
+        save_figure(fig, f"{output_dir}/noise_sensitivity.png", dpi=220)
 
     def _plot_ood_comparison(self, id_arr, ood_arr, id_name, ood_name,
                               verdict, output_dir):
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12.4, 4.6), constrained_layout=True)
 
         ax1.hist(id_arr,  bins=15, alpha=0.6, color="#4C72B0", label=id_name,  density=True)
         ax1.hist(ood_arr, bins=15, alpha=0.6, color="#E07B54", label=ood_name, density=True)
@@ -371,6 +375,8 @@ class ReliabilityChecker:
         ax1.set_title(f"OOD Detection: {id_name} vs {ood_name}\n"
                       f"Verdict: {verdict}", fontsize=11)
         ax1.legend()
+        ax1.margins(x=0.04, y=0.08)
+        style_axes(ax1)
 
         ax2.boxplot([id_arr, ood_arr], labels=[id_name, ood_name],
                     patch_artist=True,
@@ -379,16 +385,15 @@ class ReliabilityChecker:
         ax2.set_ylabel("Mean uncertainty", fontsize=11)
         ax2.set_title("Distribution comparison", fontsize=11)
         ax2.grid(axis="y", alpha=0.3)
+        style_axes(ax2)
 
-        plt.suptitle("Check 2: OOD Detection via Uncertainty", fontsize=13)
-        plt.tight_layout()
-        plt.savefig(f"{output_dir}/ood_detection.png", dpi=150, bbox_inches="tight")
-        plt.close()
+        fig.suptitle("Check 2: OOD Detection via Uncertainty", fontsize=13)
+        save_figure(fig, f"{output_dir}/ood_detection.png", dpi=220)
 
     def _plot_overconfident_failures(self, preds, gts, uncs, errors,
                                       unc_threshold, verdict, output_dir):
         Path(output_dir).mkdir(parents=True, exist_ok=True)
-        fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+        fig, axes = plt.subplots(1, 2, figsize=(12.4, 4.8), constrained_layout=True)
 
         # Scatter: uncertainty vs error (sample for speed)
         idx = np.random.choice(len(preds), min(5000, len(preds)), replace=False)
@@ -400,6 +405,8 @@ class ReliabilityChecker:
         axes[0].set_title("Uncertainty vs prediction error\n"
                           "Ideal: errors concentrate at HIGH uncertainty", fontsize=11)
         axes[0].legend()
+        axes[0].margins(x=0.04, y=0.08)
+        style_axes(axes[0])
 
         # Bar: error rate by uncertainty quartile
         quartiles = np.percentile(uncs, [0, 25, 50, 75, 100])
@@ -419,12 +426,11 @@ class ReliabilityChecker:
         axes[1].set_title(f"Error rate by uncertainty quartile\n"
                           f"Verdict: {verdict}", fontsize=11)
         axes[1].legend(); axes[1].grid(axis="y", alpha=0.3)
+        axes[1].margins(x=0.04, y=0.08)
+        style_axes(axes[1])
 
-        plt.suptitle("Check 3: Overconfident Failure Analysis", fontsize=13)
-        plt.tight_layout()
-        plt.savefig(f"{output_dir}/overconfident_failures.png", dpi=150,
-                    bbox_inches="tight")
-        plt.close()
+        fig.suptitle("Check 3: Overconfident Failure Analysis", fontsize=13)
+        save_figure(fig, f"{output_dir}/overconfident_failures.png", dpi=220)
 
     def _plot_summary_dashboard(self, report, output_dir):
         """Single-page reliability dashboard."""

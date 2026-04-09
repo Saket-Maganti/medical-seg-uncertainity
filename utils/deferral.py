@@ -22,11 +22,18 @@ Usage:
     policy.run(output_dir="results/deferral")
 """
 
+import csv
+
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import auc
 from pathlib import Path
 import json
+
+from utils.figure_style import apply_publication_style, save_figure, style_axes
+
+
+apply_publication_style()
 
 
 class DeferralPolicy:
@@ -185,7 +192,7 @@ class DeferralPolicy:
         else:
             pr_auc = float("nan")
 
-        fig, ax = plt.subplots(figsize=(7, 6))
+        fig, ax = plt.subplots(figsize=(7.4, 6.2), constrained_layout=True)
         ax.plot(recall, precision, color="#4C72B0", linewidth=2,
                 label=(
                     f"Deferral PR curve (AUC={pr_auc:.3f})"
@@ -213,9 +220,8 @@ class DeferralPolicy:
         ax.legend(fontsize=9, loc="upper right")
         ax.set_xlim(0, 1); ax.set_ylim(0, 1)
         ax.grid(alpha=0.3)
-        plt.tight_layout()
-        plt.savefig(save_path, dpi=150, bbox_inches="tight")
-        plt.close()
+        style_axes(ax)
+        save_figure(fig, save_path)
         print(f"  Saved: {save_path}")
 
     def _plot_coverage_dice(self, save_path):
@@ -224,7 +230,7 @@ class DeferralPolicy:
         dice_acc  = [r["dice_accepted"] for r in rs]
         pct_def   = [r["pct_deferred"]  for r in rs]
 
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 5))
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13.2, 5.4), constrained_layout=True)
 
         # Coverage vs Dice
         ax1.plot(coverage, dice_acc, color="#4C72B0", linewidth=2)
@@ -245,9 +251,9 @@ class DeferralPolicy:
         ax2.grid(alpha=0.3)
 
         plt.suptitle("Clinical Deferral Tradeoffs", fontsize=14, y=1.01)
-        plt.tight_layout()
-        plt.savefig(save_path, dpi=150, bbox_inches="tight")
-        plt.close()
+        style_axes(ax1)
+        style_axes(ax2)
+        save_figure(fig, save_path)
         print(f"  Saved: {save_path}")
 
     def _plot_deferral_summary(self, save_path):
@@ -259,7 +265,7 @@ class DeferralPolicy:
         C   = [r["coverage"]   for r in rs]
         F1  = [r["f1"]         for r in rs]
 
-        fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+        fig, axes = plt.subplots(1, 3, figsize=(15.4, 4.5), constrained_layout=True)
         for ax, y, label, color in [
             (axes[0], P,  "Precision", "#4C72B0"),
             (axes[1], R,  "Recall",    "#54A87A"),
@@ -270,12 +276,68 @@ class DeferralPolicy:
             ax.set_ylabel(label, fontsize=11)
             ax.set_title(f"{label} vs T", fontsize=12)
             ax.grid(alpha=0.3)
+            ax.margins(x=0.03, y=0.08)
+            style_axes(ax)
 
-        plt.suptitle("Effect of Deferral Threshold on Clinical Metrics", fontsize=13)
-        plt.tight_layout()
-        plt.savefig(save_path, dpi=150, bbox_inches="tight")
-        plt.close()
+        fig.suptitle("Effect of Deferral Threshold on Clinical Metrics", fontsize=13)
+        save_figure(fig, save_path, dpi=220)
         print(f"  Saved: {save_path}")
+
+    # ── CSV export ────────────────────────────────────────────────────────────
+
+    def to_csv(self, path: str) -> None:
+        """
+        Save the full threshold sweep to a CSV file.
+
+        Columns: threshold, coverage, precision, recall, f1,
+                 dice_accepted, n_deferred, pct_deferred
+        """
+        if not hasattr(self, "sweep_results"):
+            raise RuntimeError("Call sweep_thresholds() first.")
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        fieldnames = [
+            "threshold", "coverage", "precision", "recall",
+            "f1", "dice_accepted", "n_deferred", "pct_deferred",
+        ]
+        with open(path, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
+            writer.writeheader()
+            writer.writerows(self.sweep_results)
+        print(f"  Saved: {path}")
+
+    def error_reduction_summary(self, threshold: float) -> dict:
+        """
+        Compute aggregate error reduction achieved by applying a fixed threshold.
+
+        Returns dict with:
+          - error_rate_before: fraction of wrong pixels (global)
+          - error_rate_after:  fraction of wrong pixels on ACCEPTED pixels only
+          - error_reduction:   absolute improvement
+          - pct_deferred:      % pixels deferred
+        """
+        deferred = self.unc_flat > threshold
+        accepted = ~deferred
+
+        # Error rate before = errors / all pixels
+        err_before = float(self.err_flat.mean())
+
+        # Error rate after = errors on accepted pixels / accepted pixels
+        if accepted.sum() > 0:
+            err_after = float(self.err_flat[accepted].mean())
+        else:
+            err_after = float("nan")
+
+        return {
+            "threshold":         float(threshold),
+            "error_rate_before": err_before,
+            "error_rate_after":  err_after,
+            "error_reduction":   float(err_before - err_after)
+                                 if np.isfinite(err_after) else float("nan"),
+            "pct_deferred":      float(deferred.mean() * 100.0),
+            "n_deferred":        int(deferred.sum()),
+            "n_total":           int(self.n_pixels),
+        }
 
     # ── Run all ───────────────────────────────────────────────────────────────
 
@@ -287,13 +349,21 @@ class DeferralPolicy:
         print("[DeferralPolicy] Generating plots...")
         self.plot_all(output_dir)
 
+        # Save sweep to CSV
+        self.to_csv(Path(output_dir) / "deferral_sweep.csv")
+
+        # Error reduction at the best-F1 threshold
+        best_T = self.optimal["max_f1"]["threshold"]
+        err_summary = self.error_reduction_summary(best_T)
+
         summary = {
-            "n_pixels":   self.n_pixels,
-            "optimal":    self.optimal,
+            "n_pixels":      self.n_pixels,
+            "optimal":       self.optimal,
+            "error_reduction_at_best_f1": err_summary,
             "operating_points": {
-                "balanced_f1": self.optimal["max_f1"],
+                "balanced_f1":    self.optimal["max_f1"],
                 "high_precision": self.optimal["high_precision"],
-                "high_recall": self.optimal["high_recall"],
+                "high_recall":    self.optimal["high_recall"],
             },
         }
         out = Path(output_dir) / "deferral_summary.json"
@@ -305,4 +375,9 @@ class DeferralPolicy:
             print(f"  {name:35s}: T={r['threshold']:.5f} | "
                   f"prec={r['precision']:.3f} | rec={r['recall']:.3f} | "
                   f"cov={r['coverage']:.3f} | dice_acc={r['dice_accepted']:.3f}")
+        print(f"\n[DeferralPolicy] Error reduction @ best-F1 threshold:")
+        print(f"  error_before={err_summary['error_rate_before']:.4f}  "
+              f"error_after={err_summary['error_rate_after']:.4f}  "
+              f"reduction={err_summary['error_reduction']:.4f}  "
+              f"deferred={err_summary['pct_deferred']:.1f}%")
         return summary

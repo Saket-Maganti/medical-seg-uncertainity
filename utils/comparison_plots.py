@@ -98,7 +98,7 @@ def plot_risk_coverage_comparison(
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+    fig, axes = plt.subplots(1, 2, figsize=(13.2, 5.4), constrained_layout=True)
     plotted = 0
 
     for label, csv_path in methods.items():
@@ -109,10 +109,8 @@ def plot_risk_coverage_comparison(
         key = label.lower().replace(" ", "_")
         color = _METHOD_COLORS.get(key, f"C{plotted}")
 
-        axes[0].plot(data["coverage"], data["error_rate"],
-                     color=color, linewidth=2.5, label=label)
-        axes[1].plot(data["coverage"], data["dice"],
-                     color=color, linewidth=2.5, label=label)
+        axes[0].plot(data["coverage"], data["error_rate"], color=color, linewidth=2.6, label=label)
+        axes[1].plot(data["coverage"], data["dice"], color=color, linewidth=2.6, label=label)
         plotted += 1
 
     # Risk-coverage panel
@@ -124,6 +122,7 @@ def plot_risk_coverage_comparison(
     axes[0].legend(fontsize=10)
     axes[0].grid(alpha=0.3)
     axes[0].set_xlim(1.0, 0.1)
+    axes[0].margins(x=0.02, y=0.08)
 
     # Coverage-Dice panel
     axes[1].axhline(0.82, color="red", linestyle="--", linewidth=1.2,
@@ -135,6 +134,7 @@ def plot_risk_coverage_comparison(
     axes[1].legend(fontsize=10)
     axes[1].grid(alpha=0.3)
     axes[1].set_xlim(1.0, 0.1)
+    axes[1].margins(x=0.02, y=0.08)
 
     plt.suptitle(title, fontsize=13)
     style_axes(axes[0])
@@ -172,7 +172,7 @@ def plot_deferral_mode_comparison(
     global_data   = _load_risk_coverage_csv(global_csv)
     adaptive_data = _load_risk_coverage_csv(adaptive_csv)
 
-    fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+    fig, axes = plt.subplots(1, 2, figsize=(13.2, 5.4), constrained_layout=True)
 
     for data, label, color in [
         (global_data,   "Global threshold",         _MODE_COLORS["global"]),
@@ -190,6 +190,7 @@ def plot_deferral_mode_comparison(
         ax.legend(fontsize=10)
         ax.set_xlim(1.0, 0.1)
         ax.set_xlabel("Coverage (fraction accepted)", fontsize=12)
+        ax.margins(x=0.02, y=0.08)
         style_axes(ax)
 
     axes[0].set_ylabel("Risk (pixel error rate)", fontsize=12)
@@ -260,7 +261,7 @@ def plot_qualitative_comparison(
         lo, hi = c.min(), c.max()
         return (c - lo) / (hi - lo + 1e-8)
 
-    fig, axes = plt.subplots(2, 5, figsize=(25, 10))
+    fig, axes = plt.subplots(2, 5, figsize=(24, 9.2), constrained_layout=True)
     titles = ["Input", "Ground truth", "Prediction", "Uncertainty", "Deferred regions"]
 
     for row, (method, pred, unc, deferred) in enumerate([
@@ -292,10 +293,8 @@ def plot_qualitative_comparison(
 
         axes[row, 0].set_ylabel(method, fontsize=12, rotation=90, labelpad=8)
 
-    plt.suptitle("Qualitative Comparison: MC Dropout vs TTA", fontsize=13, y=1.01)
-    plt.tight_layout()
-    plt.savefig(save_path, dpi=150, bbox_inches="tight")
-    plt.close()
+    fig.suptitle("Qualitative Comparison: MC Dropout vs TTA", fontsize=13, y=1.01)
+    save_figure(fig, save_path, dpi=220)
     print(f"  Saved: {save_path}")
     return str(save_path)
 
@@ -329,7 +328,7 @@ def plot_method_summary_bars(
     fig, axes = plt.subplots(
         nrows,
         ncols,
-        figsize=(4.9 * ncols, 4.4 * nrows),
+        figsize=(5.3 * ncols, 4.8 * nrows),
         constrained_layout=True,
     )
     if n_metrics == 1:
@@ -357,9 +356,10 @@ def plot_method_summary_bars(
         vals = [float(results[lbl].get(metric, float("nan"))) for lbl in labels]
         bars = ax.bar(x, vals, color=colors, width=0.5)
         ax.set_xticks(x)
-        ax.set_xticklabels(pretty_labels, fontsize=9.5, rotation=15, ha="right")
+        ax.set_xticklabels(pretty_labels, fontsize=9.5, rotation=22, ha="right")
         ax.set_title(metric.replace("_", " ").upper(), fontsize=11)
         ax.grid(axis="y", alpha=0.3)
+        ax.margins(x=0.04)
         style_axes(ax)
 
         finite_vals = [v for v in vals if np.isfinite(v)]
@@ -605,7 +605,7 @@ def plot_calibration_comparison(
     ece_before = expected_calibration_error(probs_before, labels)
     ece_after  = expected_calibration_error(probs_after,  labels)
 
-    fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+    fig, axes = plt.subplots(1, 2, figsize=(13.2, 5.4), constrained_layout=True)
 
     for ax, probs, ece, title in [
         (axes[0], probs_before, ece_before,
@@ -615,17 +615,19 @@ def plot_calibration_comparison(
     ]:
         centers, conf, acc, _ = reliability_diagram_data(probs, labels)
         ax.plot([0, 1], [0, 1], "k--", linewidth=1.2, label="Perfect calibration")
-        ax.bar(centers, acc, width=1.0 / len(centers), alpha=0.65,
-               color="#4C72B0", label="Accuracy")
+        ax.bar(centers, acc, width=1.0 / len(centers), alpha=0.65, color="#4C72B0", label="Accuracy")
         ax.plot(centers, conf, "ro-", markersize=4, label="Confidence")
         ax.set_title(title, fontsize=12)
-        ax.set_xlabel("Confidence"); ax.set_ylabel("Accuracy")
+        ax.set_xlabel("Confidence")
+        ax.set_ylabel("Accuracy")
         ax.legend(fontsize=9)
-        ax.set_xlim(0, 1); ax.set_ylim(0, 1)
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, 1)
+        ax.margins(x=0.02, y=0.04)
         style_axes(ax)
 
     t_str = f" (T = {temperature:.3f})" if temperature is not None else ""
-    plt.suptitle(f"{method_name} Calibration Comparison{t_str}", fontsize=13)
+    fig.suptitle(f"{method_name} Calibration Comparison{t_str}", fontsize=13)
     save_path = output_dir / "calibration_comparison.png"
     save_figure(fig, save_path)
     print(f"  Saved: {save_path}")
@@ -664,7 +666,7 @@ def plot_deferral_3mode_comparison(
         "conf_aware": "#55A868",
     }
 
-    fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+    fig, axes = plt.subplots(1, 2, figsize=(13.2, 5.4), constrained_layout=True)
 
     for csv_path, label, color in [
         (global_csv,     "Global threshold",   _MODE_3_COLORS["global"]),
@@ -685,6 +687,7 @@ def plot_deferral_3mode_comparison(
         ax.legend(fontsize=10)
         ax.set_xlim(1.0, 0.1)
         ax.set_xlabel("Coverage (fraction accepted)", fontsize=12)
+        ax.margins(x=0.02, y=0.08)
         style_axes(ax)
 
     axes[0].set_ylabel("Risk (pixel error rate)", fontsize=12)

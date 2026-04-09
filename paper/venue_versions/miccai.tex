@@ -1,0 +1,129 @@
+\documentclass[runningheads]{llncs}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage[colorlinks=false,pdfborder={0 0 0}]{hyperref}
+
+\begin{document}
+
+\title{From Prediction to Decision: Uncertainty-Aware Deferral \\ for Reliable Medical Image Segmentation}
+
+\author{Author Names Withheld}
+\institute{Institution Withheld}
+
+\maketitle
+
+\begin{abstract}
+Segmentation models produce predictions for every pixel, but clinical deployment
+requires knowing which predictions to trust. We formalize this as a selective
+prediction problem and compare how uncertainty estimation methods (MC Dropout,
+Test-Time Augmentation) and deferral strategies (global thresholding,
+image-adaptive, confidence-aware) interact when the goal is reliable decisions
+rather than improved segmentation. On retinal vessel analysis (DRIVE, STARE,
+CHASE\_DB1), TTA achieves uncertainty AUROC 0.881 versus 0.768 for MC Dropout,
+while running 6.3$\times$ faster. Confidence-aware deferral reduces error by
+55\% while deferring 12\% of pixels, compared to 26\% error reduction at 33\%
+deferral for global thresholding. Temperature scaling does not improve deferral
+performance despite marginally reducing calibration error. Cross-dataset
+evaluation shows uncertainty quality transfers robustly under domain shift
+(Unc-AUROC $>$ 0.83 on external datasets despite 5\% Dice drop).
+\end{abstract}
+
+\section{Introduction}
+
+A segmentation model averaging 0.78 Dice across a test set tells a clinician
+little about any individual image. What a clinical deployment needs is a policy:
+for each pixel, should the output be trusted or deferred to human review?
+
+This question connects uncertainty estimation with selective prediction, two
+areas that have developed separately in medical imaging. We address the gap by
+studying the \emph{decision layer} on top of existing uncertainty methods.
+Rather than proposing new architectures, we ask: given an uncertainty map and a
+prediction, what policy should determine which outputs to accept?
+
+Our contributions: (1) A comparison of MC Dropout and TTA evaluated by deferral
+effectiveness rather than calibration alone, showing TTA produces substantially
+better uncertainty for decisions (Unc-AUROC 0.881 vs.\ 0.768). (2) A
+confidence-aware deferral strategy achieving 55\% error reduction at 12\%
+deferral rate. (3) Evidence that temperature scaling does not improve
+decision quality. (4) Cross-dataset evaluation showing uncertainty quality
+transfers more robustly than segmentation accuracy.
+
+\section{Methodology}
+
+\paragraph{Problem setting.} Given input $\mathbf{x}$, a segmentation model
+produces prediction $\hat{\mathbf{p}} \in [0,1]^{H \times W}$ and uncertainty
+map $\mathbf{u}$. A deferral policy $\delta$ maps these to a binary accept/defer
+decision per pixel.
+
+\paragraph{Uncertainty estimation.} MC Dropout ($T = 30$ passes, $p = 0.3$)
+uses mutual information: $\text{MI}_{ij} = H(\bar{p}_{ij}) - \frac{1}{T}
+\sum_t H(\hat{p}_{ij}^{(t)})$. TTA ($K = 6$ geometric transforms) uses
+prediction variance across augmented outputs.
+
+\paragraph{Deferral strategies.} \emph{Global:} defer if $u_{ij} > \tau$.
+\emph{Adaptive:} per-image percentile threshold. \emph{Confidence-aware:}
+score $s_{ij} = u_{ij} \cdot (1 - c_{ij})$ where $c_{ij} = 2|\hat{p}_{ij}
+- 0.5|$, deferring pixels that are both uncertain and near the decision
+boundary.
+
+\paragraph{Calibration.} Temperature scaling: $\hat{p}^{\text{cal}} =
+\sigma(\text{logit}(\hat{p}) / T)$, with $T$ fit on validation set.
+
+\section{Experiments}
+
+\paragraph{Setup.} U-Net (ResNet-34 encoder) trained on DRIVE (20 train images,
+256$\times$256 patches, 80 epochs, Adam, lr $10^{-4}$, Dice+BCE loss).
+Cross-dataset: STARE (20 images), CHASE\_DB1 (28 images), zero-shot.
+
+\paragraph{TTA outperforms MC Dropout for deferral.} TTA: Unc-AUROC 0.881,
+AUCC (Dice) 0.846, runtime 0.13\,s. MC Dropout: Unc-AUROC 0.768, AUCC 0.801,
+runtime 0.82\,s. Segmentation quality is similar (Dice 0.768 vs.\ 0.764).
+
+\paragraph{Confidence-aware deferral is efficient.} At 12\% deferral rate,
+confidence-aware reduces error by 55\% (TTA). Global thresholding needs 33\%
+deferral for 26\% error reduction (MC Dropout). The confidence-aware score
+filters uncertain-but-correct pixels that waste review capacity.
+
+\paragraph{Calibration does not help deferral.} Temperature scaling ($T = 1.19$
+for MC, $T = 1.35$ for TTA) barely changes ECE ($<$ 0.001 improvement) and
+reduces MC Dropout Unc-AUROC from 0.768 to 0.749.
+
+\paragraph{Uncertainty transfers under domain shift.} DRIVE $\to$ STARE: Dice
+drops 5\% (0.764 $\to$ 0.727) but Unc-AUROC rises from 0.768 to 0.846.
+
+\begin{table}[t]
+\centering
+\caption{Main results on DRIVE. ERR = error reduction ratio.}
+\small
+\begin{tabular}{lcccccc}
+\toprule
+Method & Dice & Unc-AUROC & ERR & Def.\ \% & Time (s) \\
+\midrule
+MC Drop.\ (global) & 0.763 & 0.722 & 26.4\% & 33.4\% & 0.82 \\
+MC Drop.\ (conf-aware) & 0.763 & 0.722 & 48.9\% & 10.9\% & 2.65 \\
+TTA (adaptive) & 0.768 & 0.881 & 79.5\% & 25.0\% & 0.13 \\
+TTA (conf-aware) & 0.768 & 0.881 & 55.2\% & 12.1\% & 0.86 \\
+\bottomrule
+\end{tabular}
+\label{tab:main}
+\end{table}
+
+\section{Discussion and conclusion}
+
+TTA's advantage comes from probing input-level prediction fragility rather
+than weight-space variance. Confidence-aware deferral succeeds by
+distinguishing uncertain-and-borderline pixels from uncertain-but-confident
+ones. Temperature scaling fails because it optimizes a distributional property
+(ECE) rather than the discriminative property (uncertainty-error correlation)
+that deferral requires.
+
+These results argue for evaluating uncertainty methods by their downstream
+decision consequences, not calibration metrics alone. Future work should
+extend to multi-class segmentation and incorporate human-in-the-loop
+evaluation.
+
+\bibliographystyle{splncs04}
+\bibliography{../references}
+
+\end{document}

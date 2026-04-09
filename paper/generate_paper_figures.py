@@ -285,7 +285,7 @@ def make_error_reduction_bars() -> None:
 
     x = np.arange(len(labels))
     width = 0.34
-    fig, ax = plt.subplots(figsize=(11.8, 6.1), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(12.3, 6.7), constrained_layout=True)
 
     before = ax.bar(
         x - width / 2,
@@ -306,24 +306,41 @@ def make_error_reduction_bars() -> None:
         linewidth=0.8,
     )
 
+    label_xs = []
+    label_ys = []
+    label_texts = []
     for i, (erp, dp) in enumerate(zip(err_pct, def_pct)):
         ymax = max(before[i].get_height(), after[i].get_height())
-        ax.text(
-            i,
-            ymax + 0.34,
-            f"ERR {erp:.1f}%\nDef {dp:.1f}%",
-            ha="center",
-            va="bottom",
-            fontsize=8.1,
-            fontweight="bold",
-            bbox=dict(boxstyle="round,pad=0.22", facecolor="white", edgecolor="#E2E8F0", alpha=0.92),
-        )
+        label_xs.append(float(i))
+        label_ys.append(float(ymax + 0.18))
+        label_texts.append(f"ERR {erp:.1f}%\nDef {dp:.1f}%")
+
+    add_adjusted_labels(
+        ax,
+        label_xs,
+        label_ys,
+        label_texts,
+        initial_offsets=[(0.0, 0.18), (0.0, 0.32), (0.0, 0.18), (0.0, 0.32), (0.0, 0.18), (0.0, 0.32)],
+        text_kwargs={
+            "fontsize": 8.0,
+            "fontweight": "bold",
+            "ha": "center",
+            "va": "bottom",
+            "bbox": dict(boxstyle="round,pad=0.22", facecolor="white", edgecolor="#E2E8F0", alpha=0.94),
+        },
+        arrow_kwargs={"arrowstyle": "->", "color": "#7C8798", "lw": 0.75, "shrinkA": 4, "shrinkB": 3},
+        expand_points=(1.45, 1.55),
+        expand_text=(1.15, 1.28),
+        force_points=0.4,
+        force_text=0.5,
+    )
 
     ax.set_ylabel("Pixel error rate (%)")
     ax.set_title("Error Rates Before and After Deferral")
     ax.set_xticks(x)
-    ax.set_xticklabels(labels, rotation=16, ha="right")
-    ax.set_ylim(0, max([e * 100 for e in err_before]) + 1.8)
+    ax.set_xticklabels(labels, rotation=20, ha="right")
+    ax.set_ylim(0, max([e * 100 for e in err_before]) + 2.6)
+    ax.margins(x=0.04)
     style_axes(ax)
     ax.legend(loc="upper right")
 

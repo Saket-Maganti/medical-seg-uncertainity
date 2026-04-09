@@ -8,7 +8,7 @@
 ![Deferral](https://img.shields.io/badge/Decision%20Layer-Global%20%7C%20Adaptive%20%7C%20Confidence--Aware-2563EB?style=flat-square)
 ![Calibration](https://img.shields.io/badge/Calibration-Temperature%20Scaling-F59E0B?style=flat-square)
 ![Dataset](https://img.shields.io/badge/Datasets-DRIVE%20%7C%20STARE%20%7C%20CHASE_DB1-059669?style=flat-square)
-![Best Result](https://img.shields.io/badge/Best%20Result-79.4%25%20error%20reduction%20at%2025%25%20deferral-DC2626?style=flat-square)
+![Best Result](https://img.shields.io/badge/Best%20Result-79.5%25%20error%20reduction%20at%2025%25%20deferral-DC2626?style=flat-square)
 ![Main Finding](https://img.shields.io/badge/Main%20Finding-TTA%20outperforms%20MC%20Dropout-1D4ED8?style=flat-square)
 ![License](https://img.shields.io/badge/License-Unspecified-6B7280?style=flat-square)
 
@@ -17,11 +17,15 @@ It is about knowing when the model should decide automatically and when it shoul
 
 This repository also ships a full paper package and project page:
 
+- active manuscript source: `paper/`
 - arXiv source: `arxiv_submission/`
 - compiled paper PDF: `arxiv_submission/main.pdf`
 - project website: `project_page/index.html`
 - publication figures: `paper/figures/`
 - web-ready figures: `project_page/assets/`
+
+The `medicalpaper/` directory is a legacy manuscript snapshot kept for reference.
+The actively maintained paper sources for this repository are `paper/` and `arxiv_submission/`.
 
 ---
 
@@ -297,7 +301,7 @@ Where a public artifact is absent, the README explains the expected directory la
 
 ### 8.4 Main headline result
 
-- TTA + adaptive deferral: about `79.4%` error reduction at `25.0%` deferred pixels.
+- TTA + adaptive deferral: about `79.5%` error reduction at `25.0%` deferred pixels.
 
 ---
 
