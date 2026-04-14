@@ -33,4 +33,15 @@ paper/*.lot
 paper/*.fls
 paper/*.fdb_latexmk
 paper/missfont.log
+medicalpaper/*.aux
+medicalpaper/*.bbl
+medicalpaper/*.blg
+medicalpaper/*.log
+medicalpaper/*.out
+medicalpaper/*.toc
+medicalpaper/*.lof
+medicalpaper/*.lot
+medicalpaper/*.fls
+medicalpaper/*.fdb_latexmk
+medicalpaper/missfont.log
 *.zip

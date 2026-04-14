@@ -1,0 +1,128 @@
+\section{Introduction}
+\label{sec:introduction}
+
+A retinal vessel segmentation model that averages 0.78 Dice across a test
+set tells a clinician very little about any individual image. Some images
+are segmented near-perfectly; others contain errors that, if acted upon,
+could affect screening decisions for diabetic retinopathy or glaucoma. The
+aggregate metric hides this variance, and a calibrated probability map does
+not, on its own, tell the clinician what to \emph{do} about it. What a
+clinical deployment actually needs is a \emph{policy}: for each pixel,
+should the prediction be trusted, flagged for review, or handed off to a
+human?
+
+\paragraph{Estimation has outpaced decision.} Research on uncertainty in
+medical image segmentation has concentrated almost entirely on
+\emph{estimation}: better posteriors via Bayesian approximations
+\citep{gal2016dropout}, ensembles \citep{lakshminarayanan2017simple}, and
+test-time augmentation \citep{wang2019aleatoric}, scored by calibration
+metrics such as ECE and NLL. These lines of work ask \emph{how well} we
+estimate uncertainty; they rarely ask what happens next. Selective
+prediction \citep{geifman2017selective,el2010foundations} formalizes
+abstention in classification, but its application to dense pixel-level
+prediction---and its coupling with modern uncertainty estimators---remains
+underdeveloped. The result is a literature in which uncertainty maps are
+produced, tabulated, and then left unused. The missing layer is
+\emph{decision}: a policy that converts an uncertainty map into an action.
+\textbf{Uncertainty without decisions is evaluation without consequence.}
+
+\paragraph{A decision-aware perspective on uncertainty.} We reframe the
+problem. The key question is not how well uncertainty is estimated, but
+whether it enables better decisions. More pointedly: \textbf{uncertainty
+is not a property of a model, but of a decision process.} Two models with
+identical calibration can produce decisions of very different quality,
+because the value of an uncertainty map depends on the rule that consumes
+it. The same uncertainty map can look mediocre under one deferral rule
+and excellent under another. These are not calibration statements; they
+are statements about the joint estimation--decision system, and no
+amount of recalibration addresses them.
+
+This paper operationalizes that reframing. We study, empirically, how the
+choice of uncertainty source and the choice of deferral policy jointly
+determine segmentation decision quality, and we show that ignoring either
+dimension leaves most of the available error reduction on the table. The
+right combination of uncertainty method and deferral policy eliminates
+roughly 80\% of segmentation errors while deferring only 25\% of pixels;
+the wrong combination reduces errors by less than a third of that, using
+the same images, the same model, and the same forward passes. The
+difference is entirely in the \emph{decision layer} sitting on top.
+
+\paragraph{Why this is not obvious.} One might object that ``use
+uncertainty to defer'' is folklore, and therefore our reframing merely
+restates what the field already knows. We disagree. In practice, existing
+work optimizes uncertainty \emph{in isolation}: Bayesian methods are tuned
+for calibration, ensembles for NLL, post-hoc methods for ECE. Deferral,
+when it appears at all, is a fixed-threshold afterthought evaluated at a
+single operating point. This decomposition hides the interaction we study.
+A well-calibrated model with a poor deferral rule can underperform a
+less-calibrated model with a well-designed one; any methodology that
+scores uncertainty on its own is blind to this fact. The standard
+calibration toolkit is not merely incomplete as a proxy for decision
+quality---it is actively misleading, because it rewards distributional
+match over discriminative separation, and deferral cares only about the
+latter. Our contribution is to measure the interaction directly,
+demonstrate that it is large, and show that the field has been optimizing
+the wrong objective.
+
+\paragraph{Setup.} Our study uses retinal vessel segmentation on DRIVE,
+with cross-dataset evaluation on STARE and CHASE\_DB1. We train a U-Net
+with a ResNet-34 encoder and compare two uncertainty estimation
+approaches---MC Dropout (30 stochastic forward passes) and Test-Time
+Augmentation (6 geometric transforms)---under three deferral strategies
+of increasing sophistication:
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Global thresholding}: defer all pixels whose uncertainty
+  exceeds a fixed threshold, optimized on a validation set.
+  \item \textbf{Image-adaptive thresholding}: compute a per-image threshold
+  based on percentile statistics of that image's uncertainty distribution,
+  adapting the deferral rate to each image's difficulty.
+  \item \textbf{Confidence-aware deferral}: weight uncertainty by inverse
+  prediction confidence, so that uncertain pixels near the decision
+  boundary ($p \approx 0.5$) are deferred preferentially over uncertain
+  pixels where the model is nonetheless confident.
+\end{enumerate}
+
+We evaluate these combinations through risk-coverage curves, deferral
+curves, and direct measurement of error reduction as a function of
+deferral rate.
+
+\paragraph{Contributions.}
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{An estimation$\,\to\,$decision reframing of uncertainty
+  for segmentation.} We treat uncertainty estimation and deferral as a
+  single pipeline and show their interaction is large enough that
+  optimizing either alone is insufficient. Under this lens, uncertainty
+  quality is not a scalar property of a model but a property of the
+  decision rule it is paired with.
+
+  \item \textbf{TTA dominates MC Dropout as a decision-time uncertainty
+  source.} TTA uncertainty discriminates correct from incorrect pixels
+  substantially better (Unc-AUROC 0.881 vs.\ 0.722) while running
+  $3.1\times$ faster---establishing it as the preferred uncertainty source
+  for deferral-based segmentation pipelines.
+
+  \item \textbf{A confidence-aware deferral rule.} We introduce the score
+  $s = u \cdot (1 - c)$, which suppresses deferral for pixels that are
+  uncertain but not borderline. Paired with TTA, it removes 55\% of errors
+  at only 12\% deferral---the best low-budget efficiency in our study. TTA
+  with image-adaptive deferral reaches roughly 80\% error reduction at
+  25\% deferral---the overall error-removal ceiling.
+
+  \item \textbf{Evidence that calibration is the wrong target for
+  deferral.} Temperature scaling does not improve deferral operating
+  points and can worsen ECE, demonstrating that calibration metrics and
+  decision quality are decoupled and must be evaluated separately.
+
+  \item \textbf{Cross-dataset evidence that decision quality is robust to
+  domain shift.} Zero-shot evaluation on STARE and CHASE\_DB1 shows
+  Unc-AUROC holding above 0.83 despite a 6.5-point Dice drop. The decision
+  layer remains reliable exactly when the estimation layer is most stressed.
+\end{enumerate}
+
+The remainder of the paper proceeds as follows.
+Sections~\ref{sec:related_work}--\ref{sec:experimental_setup} situate the
+work, formalize the two-stage pipeline, and describe the experimental
+protocol. Sections~\ref{sec:results}--\ref{sec:ablations} present results
+and ablations. Sections~\ref{sec:discussion}--\ref{sec:conclusion} discuss
+implications, limitations, and concluding arguments.

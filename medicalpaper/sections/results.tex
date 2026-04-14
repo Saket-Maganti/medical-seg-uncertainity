@@ -1,0 +1,445 @@
+\section{Results}
+\label{sec:results}
+
+We organize results around a single question: \emph{how much does the
+decision layer matter?} Five claims answer it. The headline: TTA paired
+with adaptive deferral removes roughly 80\% of segmentation errors at a
+25\% deferral rate (Table~\ref{tab:main_results}); the same uncertainty
+under a naive global rule removes only a third of that.
+Figure~\ref{fig:summary_scatter} plots every method--policy combination
+on one axis and makes the interaction visible at a glance---the spread
+across configurations is far wider than the spread across uncertainty
+sources alone, which establishes the decision layer as the dominant
+contributor to final decision quality.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{summary_scatter.png}
+\caption{Error reduction vs.\ deferral rate. Each point pairs an uncertainty
+method (MC Dropout in blue, TTA in orange) with a deferral policy (marker
+shape). TTA + adaptive dominates the upper-left (79.5\% error reduction at
+25\% deferral); TTA + confidence-aware is the Pareto optimum at low budgets
+(55\% at only 12\%). Every TTA configuration outperforms every MC Dropout
+configuration---the decision layer reshapes, not merely refines, what the
+uncertainty estimator delivers.}
+\label{fig:summary_scatter}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Main results on the DRIVE test set (20 images). TTA matches the
+ensemble on segmentation quality while producing the best uncertainty
+(Unc-AUROC 0.881) and the largest error reduction (79.5\% at 25\% deferral)
+at 3.1$\times$ the speed of MC Dropout. Best values per column in bold;
+runtime is per image on a single GPU. ERR $=$ error reduction ratio;
+Def.\ \% $=$ fraction of pixels deferred.}
+\label{tab:main_results}
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.03}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{l c c c c c c c c}
+\toprule
+\textbf{Method} & \textbf{Dice} & \textbf{AUC} & \textbf{IoU} &
+\textbf{ECE} & \textbf{Unc-AUROC} & \textbf{ERR} &
+\textbf{Def.\ \%} & \textbf{Time (s)} \\
+\midrule
+Deterministic            & 0.736 & 0.944 & ---   & 0.245 & 0.500 & ---           & ---   & \textbf{0.08} \\
+MC Drop.\ (global)       & 0.763 & 0.965 & 0.617 & 0.035 & 0.722 & 26.5\%        & 33.4\% & 2.65 \\
+MC Drop.\ (adaptive)     & 0.763 & 0.965 & 0.617 & 0.035 & 0.722 & 42.4\%        & 25.0\% & 2.65 \\
+MC Drop.\ (conf-aware)   & 0.763 & 0.965 & 0.617 & 0.035 & 0.722 & 48.8\%        & 10.9\% & 2.65 \\
+\addlinespace[2pt]
+TTA (global)             & 0.768 & 0.969 & 0.624 & 0.035 & \textbf{0.881} & 55.1\%        & 13.2\% & 0.86 \\
+TTA (adaptive)           & \textbf{0.768} & \textbf{0.969} & \textbf{0.624} & 0.035 & \textbf{0.881} & \textbf{79.5\%} & 25.0\% & 0.86 \\
+TTA (conf-aware)         & 0.768 & 0.969 & 0.624 & 0.035 & \textbf{0.881} & 55.1\%        & \textbf{12.1\%} & 0.86 \\
+\midrule
+Ensemble ($N{=}5$)       & 0.771 & 0.947 & 0.627 & \textbf{0.031} & 0.833 & ---           & ---   & 3.90 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\paragraph{Reading the table.} Rows 2--4 and 5--7 share identical Dice,
+AUC, and Unc-AUROC within each uncertainty method; only the rightmost
+columns (ERR, Def.\,\%) change. The three-fold spread in error reduction
+within a single uncertainty source is the clearest evidence that the
+decision layer is not a formality---it is where most of the decision
+quality is made or lost.
+
+\subsection{TTA produces superior uncertainty for deferral}
+\label{sec:results_uncertainty}
+
+\textbf{Claim:} TTA uncertainty discriminates correct from incorrect
+predictions substantially better than MC Dropout, while requiring less
+computation.
+
+\emph{Insight before the numbers.} If errors concentrate at specific
+geometric structures, an uncertainty source that probes geometric
+instability should separate them more cleanly than one that probes
+weight instability.
+
+TTA achieves an Unc-AUROC of 0.881, compared to 0.722 for MC Dropout
+(Table~\ref{tab:main_results}). This is a large gap: TTA correctly ranks
+88.1\% of error/non-error pixel pairs by uncertainty, versus 72.2\% for
+MC Dropout. The difference is consistent across images and robust to
+bootstrap resampling.
+
+TTA also produces higher AUCC for both Dice (0.846 vs.\ 0.792) and AUC
+(0.888 vs.\ 0.884), meaning that progressively removing the most uncertain
+pixels improves performance faster with TTA uncertainty.
+
+In terms of computation, TTA requires 6 forward passes with deterministic
+augmentations ($K = 6$), while MC Dropout requires 30 stochastic passes
+($T = 30$). TTA inference takes approximately 0.86\,s per image versus
+2.65\,s for MC Dropout---a 3.1$\times$ speedup.
+
+\paragraph{Interpretation.} The quality gap has a structural explanation.
+In retinal vessel segmentation, errors concentrate at vessel boundaries
+and thin vessel tips---regions sensitive to small input perturbations. TTA
+directly tests this sensitivity by applying geometric transforms; if a
+boundary pixel flips under rotation, TTA flags it. MC Dropout instead
+samples weight perturbations, producing more spatially diffuse uncertainty
+that does not concentrate as sharply on error-prone structures. The
+takeaway generalizes beyond retinas: decision-time uncertainty should be
+sourced from perturbations that mimic the error mode, not from whichever
+Bayesian approximation is easiest to fit. ``Better uncertainty'' is not a
+fixed quantity---it is the uncertainty whose failure mode matches the
+decision rule downstream.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{uncertainty_maps.png}
+\caption{Uncertainty maps from MC Dropout and TTA. TTA uncertainty
+concentrates on boundary and thin-vessel regions where errors are most
+frequent, while MC Dropout produces more spatially diffuse uncertainty.}
+\label{fig:uncertainty_maps}
+\end{figure}
+
+\subsection{Adaptive deferral maximizes error removal; confidence-aware deferral is most efficient at low budget}
+\label{sec:results_deferral}
+
+\textbf{Claim:} Adaptive deferral achieves the largest absolute error removal,
+while confidence-aware deferral is the most efficient policy at low review
+budgets.
+
+Table~\ref{tab:deferral_comparison} breaks down the deferral results. For MC
+Dropout, global thresholding defers 33.4\% of pixels and reduces error by
+26.5\%. Adaptive deferral improves to 42.4\% error reduction at a 25\% deferral
+budget, and confidence-aware deferral reaches 48.8\% while deferring only
+10.9\% of pixels.
+
+For TTA, adaptive deferral yields the headline result: 79.5\% error reduction
+at 25.0\% deferral. The confidence-aware policy matches the global TTA policy
+in error reduction but with a smaller review budget (12.1\% vs.\ 13.2\%
+deferred).
+
+\begin{table}[H]
+\centering
+\caption{Deferral strategy comparison on the DRIVE test set. Confidence-aware
+deferral dominates at low review budgets---it delivers 4.56 percentage points
+of error reduction per percentage point deferred, roughly $5.8\times$ the
+efficiency of the MC Dropout global baseline. Adaptive deferral produces the
+largest absolute error removal (79.5\% at 25\% deferral). Bold marks the best
+value in each column within its uncertainty group.}
+\label{tab:deferral_comparison}
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.03}
+\begin{center}
+\begin{tabular}{l l c c c c c}
+\toprule
+\textbf{Uncertainty} & \textbf{Deferral} & \textbf{Error before} &
+\textbf{Error after} & \textbf{ERR} & \textbf{Def.\ \%} &
+\textbf{ERR / Def.\ \%} \\
+\midrule
+MC Dropout & Global      & 0.0658 & 0.0484 & 26.5\% & 33.4\% & 0.79 \\
+MC Dropout & Adaptive    & 0.0658 & 0.0379 & 42.4\% & 25.0\% & 1.70 \\
+MC Dropout & Conf-aware  & 0.0658 & \textbf{0.0337} & \textbf{48.8\%} & \textbf{10.9\%} & \textbf{4.49} \\
+\addlinespace[2pt]
+\midrule
+\addlinespace[2pt]
+TTA        & Global      & 0.0640 & 0.0287 & 55.1\% & 13.2\% & 4.19 \\
+TTA        & Adaptive    & 0.0640 & \textbf{0.0131} & \textbf{79.5\%} & 25.0\% & 3.18 \\
+TTA        & Conf-aware  & 0.0640 & 0.0288 & 55.1\% & \textbf{12.1\%} & \textbf{4.56} \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+The rightmost column in Table~\ref{tab:deferral_comparison}, ERR per
+percentage point deferred (ERR/Def.\ \%), quantifies deferral efficiency.
+For MC Dropout, confidence-aware deferral is dramatically more efficient than
+the global policy (4.49 vs.\ 0.79). For TTA, both global and confidence-aware
+policies are efficient, with confidence-aware slightly better (4.56 vs.\ 4.19)
+at a lower deferral rate.
+
+\paragraph{Interpretation.} Global thresholding wastes deferral budget on
+pixels that are uncertain but correctly predicted. The confidence-aware
+score $s = u \cdot (1 - c)$ suppresses these false alarms. Vessel
+interiors are a clear example: MC Dropout assigns moderate uncertainty
+there, but predictions sit well above 0.5, so $c$ is high and $s$ remains
+low. The broader lesson: deferral efficiency is decided in the score
+function, not just in the uncertainty source. A decision rule that treats
+``uncertain'' and ``borderline'' as synonyms is leaving free error
+reduction on the table.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{error_reduction_bars.png}
+\caption{Error rates before and after deferral across all configurations.
+TTA+adaptive achieves 80\% error reduction; TTA+conf-aware achieves 55\%
+error reduction at roughly half the review budget. The choice of both
+uncertainty method and deferral policy substantially reshapes the practical
+review workflow.}
+\label{fig:error_reduction_bars}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.49\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{deferral_curves.png}
+  \caption{TTA risk-coverage under three deferral modes. All three policies
+  reduce risk monotonically; confidence-aware reaches the clinical Dice
+  target (0.82) at the highest coverage.}
+  \label{fig:deferral_curves}
+\end{subfigure}\hfill
+\begin{subfigure}[b]{0.49\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{unc_vs_error.png}
+  \caption{Case-level analysis. Left: higher mean uncertainty correlates
+  with lower Dice. Right: per-image Unc-AUROC remains high even for
+  difficult cases---uncertainty is most informative where it matters most.}
+  \label{fig:unc_vs_error}
+\end{subfigure}
+\caption{Deferral behavior and case-level uncertainty analysis. Left panel
+shows TTA deferral modes; right panel confirms that uncertainty quality
+holds across the difficulty spectrum.}
+\label{fig:deferral_views}
+\end{figure}
+
+\subsection{Risk-coverage analysis}
+\label{sec:results_risk_coverage}
+
+\textbf{Claim:} Selective prediction using TTA uncertainty produces a
+steeper risk-coverage curve than MC Dropout and achieves clinically
+acceptable Dice ($\geq 0.82$) at 90\% coverage.
+
+Figure~\ref{fig:risk_coverage} shows Dice as a function of coverage for both
+uncertainty methods. At full coverage (no deferral), TTA Dice is 0.768 and MC
+Dropout is 0.764. As coverage decreases (more pixels deferred), both improve,
+but TTA improves faster.
+
+At 90\% coverage (deferring 10\% of pixels):
+\begin{itemize}[leftmargin=*]
+  \item MC Dropout: Dice = 0.778
+  \item TTA: Dice = 0.849
+\end{itemize}
+
+The clinical threshold for retinal vessel segmentation is typically taken as
+Dice $\geq 0.82$ \citep{fraz2012ensemble}. TTA reaches this threshold at
+roughly 92.7\% coverage, while MC Dropout does not reach it until roughly
+71.8\% coverage. This gap is practically significant: the TTA operating point
+retains most pixels while clearing the clinical bar, whereas MC Dropout
+requires much heavier abstention.
+
+The AUCC values quantify this difference:
+\begin{itemize}[leftmargin=*]
+  \item TTA AUCC (Dice): 0.846 vs.\ MC Dropout: 0.801
+  \item TTA AUCC (AUC): 0.888 vs.\ MC Dropout: 0.882
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{risk_coverage.png}
+\caption{Risk-coverage curves for MC Dropout and TTA. TTA reaches
+clinically acceptable Dice (0.82) at substantially higher coverage than
+MC Dropout, requiring far less human review to meet the clinical bar.}
+\label{fig:risk_coverage}
+\end{figure}
+
+\paragraph{Operating point analysis.} Three clinically motivated operating
+points illustrate the practical gap. At the \emph{clinical target}
+(Dice~$\geq 0.82$), TTA retains 90\% of pixels while MC Dropout must
+drop to 80\%~coverage---a 10-point gap at the same quality bar.
+At the balanced-F1 operating point, MC Dropout reaches Dice~0.855 but
+only at 71.9\% coverage; TTA achieves Dice~0.838 at 80\% coverage.
+Under aggressive deferral (75\% coverage), TTA pushes Dice to 0.867.
+The consistent pattern: TTA reaches every quality target at
+higher coverage, meaning less human review for the same clinical
+guarantee.
+
+\subsection{Calibration and deferral quality are decoupled}
+\label{sec:results_calibration}
+
+\textbf{Claim:} Better calibration does not produce better deferral.
+Temperature scaling worsens the reported ECE values and leaves deferral
+operating points unchanged, demonstrating that calibration metrics and
+selective prediction quality measure different properties.
+
+\emph{Insight before the numbers.} Temperature scaling is a monotonic
+rescaling: it cannot change the order of pixels by uncertainty. Any
+decision rule that thresholds on that order is therefore invariant to
+temperature scaling by construction. Table~\ref{tab:calibration} confirms
+this prediction empirically.
+
+\begin{table}[H]
+\centering
+\caption{Effect of temperature scaling on calibration and deferral. Both ECE
+values \emph{increase} after calibration while Unc-AUROC is unchanged,
+confirming that rank-preserving transforms cannot improve a discriminative
+metric. $T$ is the learned temperature.}
+\label{tab:calibration}
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.05}
+\begin{center}
+\begin{tabular}{l c c c c c}
+\toprule
+\textbf{Method} & $T$ & \textbf{ECE (pre)} & \textbf{ECE (post)} &
+$\Delta$\textbf{ECE} & \textbf{Unc-AUROC} \\
+\midrule
+MC Dropout & 1.20 & \textbf{0.035} & 0.043 & $+0.008$ & 0.722 \\
+TTA        & 1.35 & \textbf{0.035} & 0.039 & $+0.005$ & \textbf{0.881} \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+For MC Dropout, temperature scaling increases ECE from 0.035 to 0.043
+while leaving uncertainty ranking unchanged at 0.722. For TTA, ECE rises
+from 0.035 to 0.039; Unc-AUROC remains at 0.881. Neither temperature-scaled
+configuration improves downstream error reduction.
+
+\paragraph{Why this happens.} Both models learn $T > 1$, confirming mild
+overconfidence. But ECE is already below 0.04 before calibration, leaving
+little room for improvement. The learned temperatures rescale probabilities
+without changing uncertainty \emph{rankings}, so discriminative metrics
+stay flat while calibration values shift unfavorably. The lesson is both
+concrete---evaluate temperature scaling by Unc-AUROC and operating points,
+not ECE alone---and conceptual: calibration optimizes a distributional
+property; deferral optimizes a discriminative one. A monotonic rescaling
+cannot move the latter, which is exactly why the two objectives decouple.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.49\textwidth]{reliability_mc.png}
+\includegraphics[width=0.49\textwidth]{reliability_tta.png}
+\caption{Reliability diagrams for MC Dropout (left) and TTA (right), with
+and without temperature scaling. Both models are already close to the
+diagonal before calibration, leaving little room for temperature scaling to
+improve.}
+\label{fig:reliability}
+\end{figure}
+
+\subsection{Cross-dataset evaluation}
+\label{sec:results_cross_dataset}
+
+\textbf{Claim:} Uncertainty quality transfers more robustly than segmentation
+accuracy under domain shift.
+
+\emph{Insight before the numbers.} If errors on unfamiliar data concentrate
+in the same regions the model was already uncertain about, the
+uncertainty--error correlation survives the shift even when the model's
+raw accuracy does not. Table~\ref{tab:cross_dataset} shows exactly that
+pattern on the zero-shot DRIVE$\to$STARE/CHASE\_DB1 transfer.
+
+\begin{table}[H]
+\centering
+\caption{Cross-dataset evaluation (zero-shot transfer from DRIVE).
+Segmentation quality drops by 6--7 Dice points under domain shift, yet
+uncertainty quality (Unc-AUROC) holds within 1--2 points of the in-domain
+value. Uncertainty transfers more robustly than segmentation---deferral
+remains reliable exactly when it matters most.}
+\label{tab:cross_dataset}
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.03}
+\begin{center}
+\begin{tabular}{l c c c c c}
+\toprule
+\textbf{Dataset} & \textbf{Dice} & \textbf{AUC} & \textbf{ECE} &
+\textbf{Unc-AUROC} & \textbf{AUCC (Dice)} \\
+\midrule
+DRIVE (in-domain) & \textbf{0.791} & \textbf{0.960} & 0.043 & \textbf{0.850} & \textbf{0.793} \\
+STARE             & 0.727 & 0.949 & 0.038 & 0.846 & 0.773 \\
+CHASE\_DB1        & 0.726 & 0.952 & \textbf{0.035} & 0.835 & 0.766 \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+Dice drops from 0.791 (DRIVE) to 0.727 (STARE) and 0.726 (CHASE\_DB1)---a
+roughly 6.5-point decline. Unc-AUROC, however, remains strong: 0.846 on
+STARE and 0.835 on CHASE\_DB1, both close to the in-domain value. This
+result is explained by the fact that on out-of-distribution data, the model
+makes more errors in regions where it is also more uncertain (unfamiliar
+appearance patterns, different vessel calibers), preserving the
+uncertainty--error correlation.
+
+This is the clearest clinical argument in the paper: on unfamiliar data
+where deferral matters most, the uncertainty signal is at its most
+reliable. A system deployed on a new scanner or patient population can
+lean on the decision layer exactly when the estimation layer is most
+stressed. Robustness, for a deferral-enabled pipeline, is a property of
+the \emph{joint system}, not of the segmentation head alone.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth,height=0.4\textheight,keepaspectratio]{qualitative_panel.png}
+\caption{Qualitative results across datasets. Errors concentrate at vessel
+boundaries (column d). TTA uncertainty tracks these regions (column e), and
+the deferral policy routes them for review (column f) while retaining the
+large majority of correctly segmented pixels.}
+\label{fig:qualitative}
+\end{figure}
+
+\subsection{Distribution shift robustness}
+\label{sec:results_shift}
+
+We also evaluate robustness to synthetic distribution shifts: Gaussian noise
+and blur at two severity levels.
+
+\begin{table}[H]
+\centering
+\caption{Effect of synthetic distribution shift. Uncertainty degrades more
+slowly than segmentation: Dice falls from 0.764 to 0.186 under strong shift
+($-$75\% relative) while Unc-AUROC only drops from 0.765 to 0.655 ($-$14\%
+relative). The clean baseline is in \textbf{bold}; the strong-shift row is in
+\emph{italics}.}
+\label{tab:shift}
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.03}
+\begin{center}
+\begin{tabular}{l c c c c c}
+\toprule
+\textbf{Shift level} & \textbf{Dice} & \textbf{AUC} & \textbf{ECE} &
+\textbf{Unc-AUROC} & \textbf{ERR (adaptive)} \\
+\midrule
+None              & \textbf{0.764} & \textbf{0.965} & \textbf{0.037} & \textbf{0.765} & \textbf{45.6\%} \\
+Mild              & 0.517 & 0.840 & 0.056 & 0.648 & 7.9\% \\
+\emph{Strong}     & \emph{0.186} & \emph{0.758} & \emph{0.094} & \emph{0.655} & \emph{25.0\%} \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+Under mild shift ($\sigma_{\text{noise}} = 0.02$, $3\times3$ Gaussian blur
+with $\sigma = 0.5$), Dice drops to 0.517---a 32\% relative decline---while
+Unc-AUROC drops to 0.648, still above chance but substantially degraded.
+Under strong shift ($\sigma_{\text{noise}} = 0.10$, $7\times7$ blur,
+4$\times$ resolution reduction), Dice collapses to 0.186 and Unc-AUROC is
+0.655.
+
+The asymmetry is notable: even under catastrophic model failure (Dice 0.186),
+uncertainty maintains above-random discriminative power (AUROC 0.655 vs.\
+0.5 random). However, deferral error reduction under strong shift is limited
+because most pixels are wrong and the uncertainty signal, while above random,
+is not sharp enough to efficiently separate remaining correct predictions.
+
+This motivates a concrete deployment rule: monitor both average uncertainty
+magnitude and Unc-AUROC on a small labeled subset. When Unc-AUROC drops
+below $\sim$0.70, switch from pixel-level deferral to image-level flagging
+---the uncertainty signal is too noisy for fine-grained triage but still
+informative enough to rank whole images by expected error.

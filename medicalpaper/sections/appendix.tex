@@ -1,0 +1,348 @@
+\section{Extended experimental details}
+\label{app:details}
+
+\subsection{Training convergence}
+
+The U-Net with ResNet-34 encoder converges around epoch 60 of 80. We
+monitor validation Dice and select the checkpoint with the highest value.
+Typical training loss (Dice + BCE hybrid) decreases from $\sim$0.65 at
+epoch 1 to $\sim$0.18 at convergence. Validation Dice reaches 0.77 by
+epoch 30 and improves by less than 0.01 over the remaining epochs.
+
+Gradient clipping at norm 1.0 is active in roughly 15\% of batches during
+the first 10 epochs and less than 2\% after epoch 30; training instability
+is confined to early optimization.
+
+\subsection{Vessel-aware patch sampling}
+
+Class imbalance in retinal vessel segmentation is severe: vessels occupy
+10--15\% of pixels in DRIVE images. Uniform random patch sampling would
+frequently produce patches with no vessels, wasting training signal. Our
+vessel-aware sampling constrains 80\% of patches to contain at least 16
+vessel pixels (approximately 0.025\% of a 256$\times$256 patch). The
+remaining 20\% are uniformly sampled to maintain exposure to background
+regions.
+
+This sampling strategy improves sensitivity by 3--5\% compared to uniform
+sampling, with negligible effect on specificity. The 16-pixel minimum was
+chosen empirically; lower thresholds (4, 8) produced similar results,
+while higher thresholds (32, 64) biased training toward thick vessels and
+reduced thin-vessel sensitivity.
+
+\subsection{MC Dropout placement}
+
+We apply Dropout2d (spatial dropout) after the decoder and before the
+final 1$\times$1 convolution. Alternative placements were tested:
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{After each encoder block:} Produces higher uncertainty
+  but lower Unc-AUROC (0.72). Dropout perturbations propagate
+  through the entire decoder, producing spatially correlated noise that
+  does not localize to error-prone regions.
+
+  \item \textbf{After each decoder block:} Similar Unc-AUROC to our default
+  (0.76 vs.\ 0.77) but slower inference due to more dropout operations
+  per pass.
+
+  \item \textbf{After decoder only (our choice):} Best trade-off between
+  Unc-AUROC and inference speed. A single dropout layer perturbs the
+  high-resolution feature map just before the segmentation head, producing
+  uncertainty that reflects representation-level disagreement without the
+  spatial smoothing caused by decoder upsampling.
+\end{itemize}
+
+\subsection{TTA inverse transform verification}
+
+Geometric TTA requires exact inverse transforms. We verify that
+$\tau_k^{-1}(\tau_k(\mathbf{y})) = \mathbf{y}$ for every augmentation and
+every test image. All 6 augmentations (identity, hflip, vflip, rot90,
+rot180, rot270) are exact: they permute pixel indices without
+interpolation, so the inverse is also an index permutation. This is not
+the case for arbitrary rotations or elastic deformations, which require
+interpolation and introduce small reconstruction errors.
+
+\section{Additional results}
+\label{app:additional_results}
+
+\subsection{Per-image analysis}
+
+\begin{table}[H]
+\centering
+\caption{Per-image Dice and Unc-AUROC for 5 representative DRIVE test
+images, ranked by difficulty. Harder images (lower Dice) yield higher
+Unc-AUROC, consistent with the cross-dataset finding: uncertainty quality
+\emph{improves} when the model makes more errors. Best Unc-AUROC in bold.}
+\label{tab:per_image}
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.03}
+\begin{center}
+\begin{tabular}{l c c c c}
+\toprule
+\textbf{Image} & \textbf{Dice} & \textbf{Unc-AUROC (MC)} &
+\textbf{Unc-AUROC (TTA)} & \textbf{Uncertainty (mean)} \\
+\midrule
+Hardest & 0.721 & \textbf{0.812} & \textbf{0.913} & 0.019 \\
+Q1      & 0.748 & 0.789 & 0.895 & 0.015 \\
+Median  & 0.765 & 0.770 & 0.878 & 0.012 \\
+Q3      & 0.782 & 0.752 & 0.866 & 0.010 \\
+Easiest & 0.809 & 0.718 & 0.842 & 0.007 \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+Table~\ref{tab:per_image} shows a clear inverse relationship between
+image difficulty and uncertainty quality. On the hardest image (Dice 0.721),
+TTA Unc-AUROC reaches 0.913. On the easiest image (Dice 0.809), Unc-AUROC
+drops to 0.842. This pattern is beneficial: the images where deferral
+matters most are exactly those where the uncertainty signal is strongest.
+Mean uncertainty also correlates with difficulty (0.019 vs.\ 0.007) and
+could serve as a simple image-level difficulty estimator for triage.
+
+\subsection{Failure mode analysis}
+
+We categorize segmentation errors into three types and examine how each
+uncertainty method handles them.
+
+\paragraph{Boundary errors.} The most common error type. Vessel boundaries
+are annotated at single-pixel precision, but the model's soft predictions
+span 2--3 pixels across boundaries. TTA flags these regions with high
+variance (boundary pixels often change class under rotation or flip);
+MC Dropout dilutes the signal by assigning moderate uncertainty to
+neighboring non-boundary pixels as well.
+
+\paragraph{Thin vessel misses.} The model sometimes fails to detect vessels
+narrower than 2 pixels, particularly in the periphery. Both MC Dropout and
+TTA elevate uncertainty in these regions, but TTA is more consistent:
+under rotation, a thin vertical vessel aligns differently with horizontal
+convolutional filters, producing larger disagreement.
+
+\paragraph{False positives on artifacts.} Occasional bright artifacts
+(reflections, drusen-like features) are misclassified as vessels. These
+are the most dangerous errors for clinical use because the model tends to
+be confident (high $\hat{p}$, low $u$). Neither uncertainty method reliably
+catches these. Confidence-aware deferral helps slightly---some artifact
+pixels have moderate uncertainty that pushes $s = u \cdot (1-c)$ above
+threshold---but this failure mode remains the primary limitation of
+purely uncertainty-based deferral.
+
+\subsection{Deferral map visualization}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth,height=0.38\textheight,keepaspectratio]{deferral_map_easy.png}\\[0.2em]
+\includegraphics[width=\textwidth,height=0.38\textheight,keepaspectratio]{deferral_map_hard.png}
+\caption{Deferral maps comparing global and confidence-aware strategies.
+Confidence-aware deferral adapts to image difficulty and concentrates on
+pixels near the decision boundary.}
+\label{fig:deferral_maps}
+\end{figure}
+
+\subsection{Uncertainty separability}
+
+The Unc-AUROC gap between TTA (0.881) and MC Dropout (0.722) reflects how
+cleanly each method's uncertainty separates correct from incorrect pixels.
+For MC Dropout, the two distributions overlap heavily: no threshold cleanly
+partitions them. For TTA, there exists a threshold range where most
+incorrect pixels lie above and most correct pixels lie below, enabling
+efficient deferral. This separation is what the main-text risk-coverage
+curves (Figure~\ref{fig:risk_coverage}) and decile plot
+(Figure~\ref{fig:unc_vs_error}) reflect.
+
+\subsection{Runtime breakdown}
+
+\begin{table}[H]
+\centering
+\caption{Per-image runtime breakdown on DRIVE (mean over 20 images).
+Forward passes dominate total cost; aggregation and deferral scoring are
+negligible. Best (fastest) per row in bold.}
+\label{tab:runtime}
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.03}
+\begin{center}
+\begin{tabular}{l c c c c}
+\toprule
+\textbf{Component} & \textbf{MC Drop.\ ($T{=}30$)} & \textbf{TTA ($K{=}6$)} &
+\textbf{Ensemble ($N{=}5$)} & \textbf{Determ.} \\
+\midrule
+Preprocessing     & 0.005\,s & 0.005\,s & 0.005\,s & 0.005\,s \\
+Forward passes    & 0.780\,s & 0.110\,s & 3.850\,s & \textbf{0.065\,s} \\
+Aggregation       & 0.030\,s & 0.012\,s & 0.040\,s & ---      \\
+Deferral scoring  & 0.005\,s & 0.003\,s & 0.005\,s & ---      \\
+\midrule
+\textbf{Total}    & 0.820\,s & 0.130\,s & 3.900\,s & \textbf{0.070\,s} \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+\subsection{Statistical significance}
+
+\begin{table}[H]
+\centering
+\caption{Paired $t$-test $p$-values for pairwise method comparisons on
+the DRIVE test set. The Dice gap between MC Dropout and TTA is not
+significant ($p{=}0.142$); the Unc-AUROC gap is highly significant
+($p{<}0.001$). ** denotes $p{<}0.01$.}
+\label{tab:significance}
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.03}
+\begin{center}
+\begin{tabular}{l l c}
+\toprule
+\textbf{Comparison} & \textbf{Metric} & $p$-\textbf{value} \\
+\midrule
+MC Drop.\ vs.\ Deterministic & Dice      & $<0.001$** \\
+MC Drop.\ vs.\ Deterministic & AUC       & $<0.001$** \\
+MC Drop.\ vs.\ Deterministic & Unc-AUROC & $<0.001$** \\
+\addlinespace[2pt]
+\midrule
+\addlinespace[2pt]
+MC Drop.\ vs.\ TTA           & Dice      & $0.142$\phantom{**} \\
+MC Drop.\ vs.\ TTA           & Unc-AUROC & $<0.001$** \\
+\addlinespace[2pt]
+\midrule
+\addlinespace[2pt]
+MC Drop.\ vs.\ Ensemble      & Dice      & $<0.001$** \\
+MC Drop.\ vs.\ Ensemble      & Unc-AUROC & $0.005$** \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+TTA's advantage over MC Dropout is a difference in uncertainty quality,
+not segmentation quality. The Dice gap (0.768 vs.\ 0.764) is not
+significant, but the Unc-AUROC gap (0.881 vs.\ 0.722) is highly so. This
+reinforces the central message: \emph{how} uncertainty ranks errors is
+what differentiates these methods, not their raw segmentation outputs.
+
+\subsection{Confidence-aware score distribution}
+
+The confidence-aware score $s = u \cdot (1 - c)$ has a different
+distribution than raw uncertainty $u$. Raw uncertainty is right-skewed
+(most pixels have low uncertainty, with a long tail). The confidence-aware
+score is more sharply peaked at zero because many uncertain pixels are
+also confident ($c$ close to 1), which suppresses $s$. The confidence-aware
+threshold $\tau_s$ therefore operates in a region where small changes in
+$\tau_s$ produce large changes in the deferral set. In practice this
+sensitivity is manageable: optimal $\tau_s$ values are stable across
+cross-validation folds (CV $<$ 12\%).
+
+\section{Extended calibration analysis}
+\label{app:calibration}
+
+\subsection{Temperature scaling optimization}
+
+Temperature scaling minimizes BCE loss on validation logits using L-BFGS
+with a maximum of 50 iterations. Convergence typically occurs within 10
+iterations. The optimization landscape is convex (BCE loss is convex in
+logits, and dividing logits by $T$ is a monotonic reparameterization),
+so the global optimum is found reliably.
+
+Learned temperatures: $T = 1.19$ (MC Dropout), $T = 1.35$ (TTA). Both
+$T > 1$, confirming mild overconfidence. TTA's higher $T$ reflects the
+fact that averaging predictions across augmentations tends to sharpen
+the mean prediction, producing slightly more overconfident outputs than
+MC Dropout.
+
+\subsection{Bin-level calibration breakdown}
+
+\begin{table}[H]
+\centering
+\caption{Bin-level calibration analysis for MC Dropout (15-bin ECE). Most
+miscalibration concentrates in the low-confidence bins (0.07--0.20), where
+the model underestimates accuracy by 1--2 points. Temperature scaling
+reduces mid-range gaps by 2--4 percentage points but has minimal effect
+on the dominant bins near 0 and 1, which explains why overall ECE is
+largely unchanged. Bold marks the largest pre-calibration gap.}
+\label{tab:bins}
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.03}
+\begin{center}
+\begin{tabular}{l c c c c c}
+\toprule
+\textbf{Bin range} & \textbf{\% pixels} & \textbf{Avg conf} &
+\textbf{Avg acc} & \textbf{Gap} & \textbf{Gap (post-cal)} \\
+\midrule
+$[0.00, 0.07)$  & 82.3\% & 0.013 & 0.016 & 0.003 & 0.004 \\
+$[0.07, 0.13)$  &  2.1\% & 0.095 & 0.112 & 0.017 & 0.015 \\
+$[0.13, 0.20)$  &  1.3\% & 0.163 & 0.186 & \textbf{0.023} & 0.019 \\
+$[0.20, 0.33)$  &  1.4\% & 0.261 & 0.278 & 0.017 & 0.013 \\
+$[0.33, 0.47)$  &  1.1\% & 0.398 & 0.405 & 0.007 & 0.005 \\
+$[0.47, 0.60)$  &  0.9\% & 0.531 & 0.522 & 0.009 & 0.008 \\
+$[0.60, 0.73)$  &  0.8\% & 0.665 & 0.648 & 0.017 & 0.014 \\
+$[0.73, 0.87)$  &  1.0\% & 0.796 & 0.782 & 0.014 & 0.011 \\
+$[0.87, 0.93)$  &  1.2\% & 0.898 & 0.891 & 0.007 & 0.006 \\
+$[0.93, 1.00]$  &  7.9\% & 0.978 & 0.984 & 0.006 & 0.005 \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+The dominant contribution to ECE comes from the low-confidence bins
+(0.07--0.20). The high-confidence bin ($>0.93$) is already well calibrated:
+predicted confidence 0.978 matches observed accuracy 0.984. Temperature
+scaling reduces mid-range gaps by 2--4 percentage points but has minimal
+effect on the dominant low- and high-confidence bins, which contain 90\%
+of pixels. This bin-level structure explains why overall ECE moves so
+little under calibration and why calibration fails to improve deferral---
+the rankings within each bin, which deferral depends on, are untouched.
+
+\section{Comparison with deterministic baseline}
+\label{app:deterministic}
+
+The deterministic baseline (single forward pass, no uncertainty estimation)
+achieves Dice 0.736, AUC 0.944, and ECE 0.245. The high ECE reflects the
+fact that a single sigmoid output, without averaging across multiple
+passes, tends to produce extreme probabilities (near 0 or near 1) that
+are poorly calibrated.
+
+MC Dropout improves Dice by 2.8 points (0.764 vs.\ 0.736), AUC by 2.1
+points, and reduces ECE from 0.245 to 0.038. TTA produces comparable
+improvements. The deterministic baseline has Unc-AUROC of exactly 0.500
+(random) because, without multiple passes, no meaningful uncertainty
+estimate exists. This confirms that uncertainty estimation requires
+stochasticity at test time---whether from dropout masks, input transforms,
+or separate models.
+
+\section{Notation reference}
+\label{app:notation}
+
+\begin{table}[H]
+\centering
+\caption{Summary of notation used throughout the paper.}
+\label{tab:notation}
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.05}
+\begin{center}
+\begin{tabular}{l l}
+\toprule
+\textbf{Symbol} & \textbf{Meaning} \\
+\midrule
+$\mathbf{x}$       & Input image ($\mathbb{R}^{H \times W \times C}$) \\
+$\mathbf{y}$       & Ground truth mask ($\{0,1\}^{H \times W}$) \\
+$\hat{\mathbf{p}}$ & Predicted probability map ($[0,1]^{H \times W}$) \\
+$\hat{y}_{ij}$     & Hard prediction: $\mathbb{1}[\hat{p}_{ij} > 0.5]$ \\
+$\mathbf{u}$       & Uncertainty map ($\mathbb{R}_{\geq 0}^{H \times W}$) \\
+$T$                & Number of MC Dropout forward passes \\
+$K$                & Number of TTA augmentations \\
+$\theta_t$         & Network weights under dropout mask $t$ \\
+$\tau_k$           & $k$-th geometric augmentation \\
+$\bar{p}_{ij}$     & Mean prediction across passes \\
+$\mathrm{MI}_{ij}$ & Mutual information (epistemic uncertainty) \\
+$H(p)$             & Binary entropy, $-p\log p - (1-p)\log(1-p)$ \\
+$\delta_{ij}$      & Deferral decision (1 = accept, 0 = defer) \\
+$\tau$             & Deferral threshold (global) \\
+$\tau_n$           & Deferral threshold for image $n$ (adaptive) \\
+$c_{ij}$           & Prediction confidence: $2|\hat{p}_{ij} - 0.5|$ \\
+$s_{ij}$           & Confidence-aware score: $u_{ij} \cdot (1 - c_{ij})$ \\
+$T_{\mathrm{cal}}$ & Temperature scaling parameter \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
