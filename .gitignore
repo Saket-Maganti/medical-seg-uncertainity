@@ -21,6 +21,9 @@ checkpoints/
 *.pt
 *.pth
 
+# Alternate paper directory (kept local, not published)
+medicalpaper/
+
 # LaTeX build artifacts
 paper/*.aux
 paper/*.bbl
