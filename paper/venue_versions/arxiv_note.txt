@@ -1,8 +1,0 @@
-The arXiv version is the full-length paper in paper/main.tex.
-
-It includes all sections (abstract, introduction, related work, methodology,
-experimental setup, results, ablations, discussion, limitations, conclusion,
-appendix) at full length. This is the definitive version from which all
-venue-specific versions are derived.
-
-To compile: cd paper/ && pdflatex main && bibtex main && pdflatex main && pdflatex main
