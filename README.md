@@ -30,7 +30,6 @@ for arXiv.
 
 ```
 .
-├── paper/                 # LaTeX source, figures, and compiled PDF (arXiv-ready)
 ├── project_page/          # Static project webpage
 ├── src/                   # Training, evaluation, uncertainty, deferral code
 ├── configs/               # YAML configs for each experiment
@@ -40,7 +39,9 @@ for arXiv.
 └── README.md
 ```
 
-The paper PDF lives at `paper/main.pdf`. Rebuild with `pdflatex main.tex` inside `paper/`.
+The LaTeX manuscript and compiled PDF are maintained separately and are
+not mirrored in this repository. The preprint will be posted to arXiv;
+the link will be added here once available.
 
 ---
 
@@ -95,8 +96,8 @@ Three deferral policies decide which pixels (or images) to route to a human:
 | Adaptive           | 1.1%             | 76.1%           |
 | **Confidence-aware** | **0.9%**       | **79.5%**       |
 
-Full tables, risk-coverage curves, and cross-dataset numbers are in the paper
-(`paper/main.pdf`, §5).
+Full tables, risk-coverage curves, and cross-dataset numbers are in the
+preprint (§5).
 
 ---
 
@@ -141,7 +142,7 @@ bash scripts/reproduce_all.sh
 ```
 
 This trains the deterministic, MC Dropout, TTA, and ensemble variants; runs cross-dataset
-evaluation; generates risk-coverage curves; and saves every figure in `paper/figures/`.
+evaluation; generates risk-coverage curves; and saves every figure under `results/`.
 Expect multiple GPU-hours on a single A100 for the full sweep.
 
 ---
@@ -161,15 +162,10 @@ All three are publicly available for research use from their respective maintain
 ## Paper
 
 - Title: *From Prediction to Decision: Uncertainty-Aware Deferral for Reliable Medical Image Segmentation*
-- Source: `paper/`
-- PDF: `paper/main.pdf`
 - Website: `project_page/index.html`
+- Preprint: coming soon on arXiv — link will be added here.
 
-Build the PDF:
-
-```bash
-cd paper && pdflatex main.tex && bibtex main && pdflatex main.tex && pdflatex main.tex
-```
+The LaTeX source and compiled PDF are maintained outside this repository.
 
 ---
 
