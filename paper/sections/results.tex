@@ -8,7 +8,18 @@ Figure~\ref{fig:summary_scatter} plots error reduction against deferral
 rate for all method--policy configurations, making the interaction between
 these two design choices visible at a glance.
 
-\begin{table}[t]
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{summary_scatter.png}
+\caption{The deferral design space. Each point is one uncertainty method
+paired with one deferral policy. The upper-left corner (high error reduction,
+low deferral rate) is ideal. TTA+adaptive provides the largest absolute
+error reduction, while TTA+confidence-aware is the strongest low-budget
+operating point.}
+\label{fig:summary_scatter}
+\end{figure}
+
+\begin{table}[H]
 \centering
 \caption{Main results on the DRIVE test set (20 images). Best values in bold.
 Runtime is per image on a single GPU. ERR = error reduction ratio.
@@ -69,7 +80,7 @@ boundary pixel flips under rotation, TTA flags it. MC Dropout instead
 samples weight perturbations, which produce more diffuse uncertainty that
 does not concentrate as sharply on error-prone structures.
 
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{uncertainty_maps.png}
 \caption{Comparison of uncertainty maps. TTA uncertainty concentrates on
@@ -95,7 +106,7 @@ at 25.0\% deferred pixels. The confidence-aware policy reaches essentially the
 same error reduction as the global TTA policy, but with a smaller review budget
 (12.1\% vs.\ 13.2\% deferred).
 
-\begin{table}[t]
+\begin{table}[H]
 \centering
 \caption{Deferral strategy comparison on DRIVE test set. Error rates are
 pixel-wise misclassification rates. Adaptive deferral maximizes absolute error
@@ -137,7 +148,18 @@ suppresses these false alarms. Vessel interiors are the clearest example: MC
 Dropout assigns moderate uncertainty there, but predictions sit well above
 0.5, so $c$ is high and $s$ stays low.
 
-\begin{figure}[t]
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{error_reduction_bars.png}
+\caption{Error rates before and after deferral. TTA+adaptive achieves
+80\% error reduction, while TTA+conf-aware achieves 55\% error reduction
+at about half the adaptive review budget. The difference between choosing the
+right uncertainty method and the right policy is large enough to reshape the
+practical review workflow.}
+\label{fig:error_reduction_bars}
+\end{figure}
+
+\begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{deferral_curves.png}
 \caption{Coverage vs.\ Dice for all method--policy combinations. TTA
@@ -147,7 +169,7 @@ highest coverage, meaning the fewest pixels need review.}
 \label{fig:deferral_curves}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{unc_vs_error.png}
 \caption{Error rate by uncertainty decile. TTA uncertainty sorts pixels
@@ -188,19 +210,19 @@ The AUCC values quantify this difference:
   \item TTA AUCC (AUC): 0.888 vs.\ MC Dropout: 0.882
 \end{itemize}
 
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{risk_coverage.png}
 \caption{Risk-coverage curves for MC Dropout and TTA. TTA reaches
 clinically acceptable Dice (0.82) at substantially higher coverage than
-MC Dropout in the unified comparison bundle.}
+MC Dropout in our experiments.}
 \label{fig:risk_coverage}
 \end{figure}
 
 \paragraph{Operating point analysis.} Table~\ref{tab:operating_points}
 shows three clinically motivated operating points for each method.
 
-\begin{table}[t]
+\begin{table}[H]
 \centering
 \caption{Operating points for selective prediction on DRIVE.
 ``Balanced F1'' maximizes the deferral F1 score. ``High precision''
@@ -231,7 +253,7 @@ TTA        & Aggressive      & 75.0\% & 0.867 & --- & --- \\
 \label{sec:results_calibration}
 
 \textbf{Claim:} Better calibration does not produce better deferral.
-In the unified comparison bundle, temperature scaling worsens the reported ECE
+In our experiments, temperature scaling worsens the reported ECE
 values and leaves the achieved deferral operating points unchanged. This
 illustrates that calibration metrics and selective prediction quality should be
 evaluated separately.
@@ -239,7 +261,7 @@ evaluated separately.
 Table~\ref{tab:calibration} compares calibrated and uncalibrated versions
 of each uncertainty method.
 
-\begin{table}[t]
+\begin{table}[H]
 \centering
 \caption{Effect of temperature scaling on calibration and deferral quality.
 $T$ is the learned temperature. Unc-AUROC measures how well uncertainty
@@ -265,15 +287,15 @@ TTA        & 1.35 & 0.0345 & 0.0393 & +0.0047 & 0.881 & 0.881 \\
 
 For MC Dropout, temperature scaling increases the reported ECE from 0.0350 to
 0.0430 while leaving the uncertainty-ranking metric unchanged at 0.722.
-The deferral operating point in the bundle is unchanged as well.
+The deferral operating point we tracked is unchanged as well.
 
 For TTA, the situation is similar: ECE increases from 0.0345 to 0.0393 after
 calibration, while Unc-AUROC remains at 0.881. The temperature-scaled run does
 not improve the downstream error-reduction operating point.
 
 \paragraph{Why this happens.} Both models learn $T > 1$, confirming mild
-overconfidence. But ECE is already below 0.04 before calibration in the
-comparison bundle, leaving little room for improvement. The learned
+overconfidence. But ECE is already below 0.04 before calibration in our
+experiments, leaving little room for improvement. The learned
 temperatures mostly rescale probabilities without changing the underlying
 uncertainty maps used for ranking and deferral, so the ranking metrics stay
 flat while the reported calibration values can move in an unfavorable
@@ -282,7 +304,7 @@ direction.
 The lesson is concrete: if the end use is deferral, evaluate temperature
 scaling by Unc-AUROC and achieved operating points, not ECE alone.
 
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \includegraphics[width=0.49\textwidth]{reliability_mc.png}
 \includegraphics[width=0.49\textwidth]{reliability_tta.png}
@@ -290,38 +312,6 @@ scaling by Unc-AUROC and achieved operating points, not ECE alone.
 temperature scaling. The pre-calibration models are already close to
 the diagonal, leaving little room for temperature scaling to improve.}
 \label{fig:reliability}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\textwidth]{error_reduction_bars.png}
-\caption{Error rates before and after deferral. TTA+adaptive achieves
-80\% error reduction, while TTA+conf-aware achieves 55\% error reduction
-at about half the adaptive review budget. The difference between choosing the
-right uncertainty method and the right policy is large enough to reshape the
-practical review workflow.}
-\label{fig:error_reduction_bars}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.85\textwidth]{summary_scatter.png}
-\caption{The deferral design space. Each point is one uncertainty method
-paired with one deferral policy. The upper-left corner (high error reduction,
-low deferral rate) is ideal. TTA+adaptive provides the largest absolute
-error reduction, while TTA+confidence-aware is the strongest low-budget
-operating point.}
-\label{fig:summary_scatter}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\textwidth]{uncertainty_maps.png}
-\caption{Qualitative results across three datasets. Errors concentrate at
-vessel boundaries (column d). TTA uncertainty tracks these regions (column e),
-and the deferral policy routes them for review (column f) while retaining
-the large majority of correctly segmented pixels.}
-\label{fig:qualitative}
 \end{figure}
 
 \subsection{Cross-dataset evaluation}
@@ -333,7 +323,7 @@ accuracy under domain shift.
 Table~\ref{tab:cross_dataset} shows results when the DRIVE-trained model
 is evaluated on STARE and CHASE\_DB1 without any fine-tuning.
 
-\begin{table}[t]
+\begin{table}[H]
 \centering
 \caption{Cross-dataset evaluation (zero-shot transfer from DRIVE).
 Segmentation quality drops by 4--5\% Dice, but uncertainty quality
@@ -371,13 +361,23 @@ data, lower accuracy), the uncertainty signal is at its most reliable.
 This property is directly useful: a system deployed on a new scanner or
 patient population can lean on deferral even as segmentation degrades.
 
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{uncertainty_maps.png}
+\caption{Qualitative results across three datasets. Errors concentrate at
+vessel boundaries (column d). TTA uncertainty tracks these regions (column e),
+and the deferral policy routes them for review (column f) while retaining
+the large majority of correctly segmented pixels.}
+\label{fig:qualitative}
+\end{figure}
+
 \subsection{Distribution shift robustness}
 \label{sec:results_shift}
 
 We also evaluate robustness to synthetic distribution shifts: Gaussian noise
 and blur at two severity levels.
 
-\begin{table}[t]
+\begin{table}[H]
 \centering
 \caption{Effect of synthetic distribution shift on segmentation and
 uncertainty quality. Under mild shift, Dice drops sharply but uncertainty

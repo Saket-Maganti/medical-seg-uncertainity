@@ -15,31 +15,13 @@ wandb/
 .claude/
 
 # Local datasets and checkpoints
-data/*
-!data/
-!data/*.py
+data/
 datasets/
 checkpoints/
 *.pt
 *.pth
 
-# Large generated experiment artifacts
-results/**/artifacts/
-results/**/fullft_train/
-results/**/patch_train/
-results/**/*.npy
-results/**/*.pth
-
-# Paper assets are intentionally excluded for now
-paper/
-paper/figures/
-paper/README_PAPER.md
-paper/main_preprint.tex
-paper/main_report.tex
-paper/main_twocolumn.tex
-experiments/generate_paper_assets.py
-
-# LaTeX build artifacts and release bundles
+# LaTeX build artifacts
 paper/*.aux
 paper/*.bbl
 paper/*.blg
@@ -51,15 +33,4 @@ paper/*.lot
 paper/*.fls
 paper/*.fdb_latexmk
 paper/missfont.log
-arxiv_submission/*.aux
-arxiv_submission/*.bbl
-arxiv_submission/*.blg
-arxiv_submission/*.log
-arxiv_submission/*.out
-arxiv_submission/*.toc
-arxiv_submission/*.lof
-arxiv_submission/*.lot
-arxiv_submission/*.fls
-arxiv_submission/*.fdb_latexmk
-arxiv_submission/*.zip
 *.zip

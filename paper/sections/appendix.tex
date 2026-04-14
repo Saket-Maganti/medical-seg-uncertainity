@@ -68,7 +68,7 @@ and introduce small reconstruction errors.
 
 \subsection{Per-image analysis}
 
-\begin{table}[t]
+\begin{table}[H]
 \centering
 \caption{Per-image Dice and Unc-AUROC for 5 representative DRIVE test
 images, ranked by difficulty (ascending Dice). Hard images (low Dice)
@@ -133,7 +133,7 @@ primary limitation of purely uncertainty-based deferral.
 
 \subsection{Deferral map visualization}
 
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{deferral_map_easy.png}\\[0.5em]
 \includegraphics[width=\textwidth]{deferral_map_hard.png}
@@ -145,7 +145,7 @@ on pixels near the decision boundary.}
 
 \subsection{Uncertainty histogram analysis}
 
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{qualitative_panel.png}
 \caption{Uncertainty distributions for correct vs.\ incorrect pixels.
@@ -162,7 +162,7 @@ correct pixels are below, enabling efficient deferral.
 
 \subsection{Runtime breakdown}
 
-\begin{table}[t]
+\begin{table}[H]
 \centering
 \caption{Runtime breakdown per image (average over 20 DRIVE test images).
 ``Preprocessing'' includes resizing and normalization. ``Aggregation''
@@ -194,7 +194,7 @@ deferral scoring are negligible ($<$ 40\,ms).
 
 \subsection{Statistical significance}
 
-\begin{table}[t]
+\begin{table}[H]
 \centering
 \caption{Paired $t$-test $p$-values for pairwise method comparisons on
 DRIVE test set (20 images). Comparisons with $p < 0.01$ are marked **.
@@ -263,7 +263,7 @@ overconfident outputs than MC Dropout.
 
 \subsection{Bin-level calibration breakdown}
 
-\begin{table}[t]
+\begin{table}[H]
 \centering
 \caption{Per-bin calibration analysis for MC Dropout (15 bins). Most
 miscalibration concentrates in the lowest and highest confidence bins.

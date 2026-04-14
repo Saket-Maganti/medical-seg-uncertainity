@@ -68,7 +68,7 @@ Our contributions:
 
 \begin{enumerate}[leftmargin=*]
   \item We show that TTA uncertainty discriminates correct from incorrect pixels
-  far better than MC Dropout in the unified comparison bundle
+  far better than MC Dropout in our experiments
   (Unc-AUROC 0.881 vs.\ 0.722) while running about 3.1$\times$ faster,
   making it the preferred uncertainty source for any
   deferral-based pipeline on this task.
@@ -81,8 +81,7 @@ Our contributions:
   than the global TTA policy.
 
   \item We demonstrate that temperature scaling, the standard post-hoc
-  calibration fix, does not improve the tracked deferral operating points in
-  this repository. In the main comparison bundle it worsens the reported ECE
+  calibration fix, does not improve the deferral operating points we measured. In our main runs it worsens the reported ECE
   values for both MC Dropout and TTA, illustrating that calibration metrics
   and deferral utility should be evaluated separately.
 

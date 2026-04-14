@@ -7,7 +7,7 @@ We vary the number of stochastic forward passes $T \in \{5, 10, 20, 30\}$
 and measure the effect on both segmentation quality and uncertainty
 discriminativeness.
 
-\begin{table}[t]
+\begin{table}[H]
 \centering
 \caption{Effect of MC Dropout pass count $T$ on DRIVE test set. Dice
 and AUC are nearly constant across $T$, confirming that the mean prediction
@@ -50,7 +50,7 @@ quality at one-third the cost.
 
 We train ensembles of $N \in \{2, 5\}$ models.
 
-\begin{table}[t]
+\begin{table}[H]
 \centering
 \caption{Effect of ensemble size on DRIVE test set. Moving from 2 to 5
 members improves Unc-AUROC by 3 percentage points but nearly triples
@@ -88,7 +88,7 @@ this calibration advantage does not translate to better deferral performance.
 We evaluate how sensitive each deferral strategy is to its threshold
 parameter by measuring error reduction across a range of deferral rates.
 
-\begin{table}[t]
+\begin{table}[H]
 \centering
 \caption{Error reduction at fixed deferral rates (5\%, 10\%, 20\%, 30\%)
 for each combination of uncertainty method and deferral strategy. Values
@@ -132,7 +132,7 @@ is the better choice.
 We run 5-fold cross-validation on the 20 DRIVE training images to assess
 the stability of our metrics.
 
-\begin{table}[t]
+\begin{table}[H]
 \centering
 \caption{Five-fold cross-validation results on DRIVE (mean $\pm$ std).
 Low variance across folds indicates stable training and evaluation.}

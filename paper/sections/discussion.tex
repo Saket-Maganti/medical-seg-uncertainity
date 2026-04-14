@@ -8,7 +8,7 @@ and ``using it to reduce errors'' is the gap this work measures. TTA with
 adaptive deferral reduces segmentation error by roughly 80\%; the same TTA
 uncertainty without any deferral policy reduces error by 0\%---the predictions
 are identical, only the decision changes. Choosing TTA over MC Dropout
-improves Unc-AUROC by roughly 16 points in the unified comparison bundle.
+improves Unc-AUROC by roughly 16 points in our experiments.
 Choosing the policy well changes how much value is extracted from that
 uncertainty. Neither
 choice alone gets you to the best operating point; both matter, and they
@@ -117,7 +117,7 @@ a practical deployment should:
 \begin{enumerate}[leftmargin=*]
 \item Use TTA (6 geometric transforms) for uncertainty when the goal is
 pixel-level review triage. It dominates MC Dropout on both quality and speed
-in the unified comparison bundle and requires no architectural changes.
+in our experiments and requires no architectural changes.
 
 \item Use confidence-aware deferral for review budgets $\leq$ 15\% of pixels,
 adaptive thresholding for larger budgets. Both are computed from the existing

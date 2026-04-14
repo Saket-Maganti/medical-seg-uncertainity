@@ -15,17 +15,15 @@
 Reliable segmentation is not only about predicting masks well.
 It is about knowing when the model should decide automatically and when it should defer for review.
 
-This repository also ships a full paper package and project page:
+This repository also ships the full paper package and project page:
 
-- active manuscript source: `paper/`
-- arXiv source: `arxiv_submission/`
-- compiled paper PDF: `arxiv_submission/main.pdf`
-- project website: `project_page/index.html`
+- manuscript source (LaTeX): `paper/`
+- compiled paper PDF: `paper/main.pdf`
 - publication figures: `paper/figures/`
+- project website: `project_page/index.html`
 - web-ready figures: `project_page/assets/`
 
-The `medicalpaper/` directory is a legacy manuscript snapshot kept for reference.
-The actively maintained paper sources for this repository are `paper/` and `arxiv_submission/`.
+The paper is prepared as an arXiv preprint. Build it locally with `pdflatex` inside `paper/`.
 
 ---
 
@@ -2157,10 +2155,6 @@ medical-seg-uncertainty/
 ├── results/
 ├── checkpoints/
 ├── paper/
-├── medicalpaper/
-├── arxiv_submission/
-├── arxiv_submission.zip
-├── arxiv_metadata.txt
 └── project_page/
 ```
 
@@ -2645,10 +2639,8 @@ Inspect:
 
 ### 45.10 What if I need a formal paper package?
 
-Use:
-
-- `arxiv_submission/`
-- `arxiv_submission.zip`
+The LaTeX source and compiled PDF live in `paper/`. Build locally with `pdflatex main.tex`
+(run three times for references, plus `bibtex main` in between).
 
 ---
 

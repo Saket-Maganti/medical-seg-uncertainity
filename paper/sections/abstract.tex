@@ -21,13 +21,13 @@ Our central result: TTA paired with adaptive deferral reduces segmentation
 error by approximately 80\% while deferring only 25\% of pixels. This
 demonstrates that the right combination of uncertainty source and deferral
 policy can eliminate the vast majority of segmentation errors at modest cost.
-In the unified comparison bundle, TTA reaches an uncertainty AUROC of 0.881,
+In our experiments, TTA reaches an uncertainty AUROC of 0.881,
 against 0.722 for MC Dropout, while running about 3.1$\times$ faster
 (0.86\,s vs.\ 2.65\,s per image). Confidence-aware deferral offers the best
 low-budget efficiency: it removes about 55\% of the error while deferring only
 12\% of pixels. Temperature scaling does not improve the downstream operating
 points in this repository and worsens the tracked ECE values for both methods
-in the main comparison bundle. Cross-dataset evaluation of the MC Dropout
+in our main runs. Cross-dataset evaluation of the MC Dropout
 pipeline shows that uncertainty quality transfers reasonably well under domain
 shift: uncertainty AUROC remains above 0.83 on STARE and CHASE\_DB1 while Dice
 falls from 0.791 on DRIVE to about 0.726.
